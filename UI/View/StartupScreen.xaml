@@ -1,0 +1,251 @@
+﻿<Window x:Class="Yafes.StartupScreen"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="YAFES CYBER SYSTEM INITIALIZING" Height="400" Width="600"
+        WindowStartupLocation="CenterScreen"
+        Background="#0D1117"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True">
+
+    <Window.Resources>
+        <!-- Cyber TextBlock Style -->
+        <Style x:Key="CyberTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#00F5FF"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#00F5FF" BlurRadius="5" ShadowDepth="0" Opacity="0.5"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Cyber Title Style -->
+        <Style x:Key="CyberTitleStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#00F5FF"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#00F5FF" BlurRadius="10" ShadowDepth="0" Opacity="0.8"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Cyber Border Style -->
+        <Style x:Key="CyberBorderStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#00F5FF"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.1">
+                        <GradientStop Color="#00F5FF" Offset="0"/>
+                        <GradientStop Color="#0096C7" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#00F5FF" BlurRadius="15" ShadowDepth="0" Opacity="0.4"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Cyber ProgressBar Style -->
+        <Style x:Key="CyberProgressStyle" TargetType="ProgressBar">
+            <Setter Property="Background" Value="#1A1A1A"/>
+            <Setter Property="BorderBrush" Value="#00F5FF"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <Grid>
+                                <Rectangle Name="PART_Track" Fill="#1A1A1A"/>
+                                <Rectangle Name="PART_Indicator" 
+                                          Fill="#00F5FF" 
+                                          HorizontalAlignment="Left">
+                                    <Rectangle.Effect>
+                                        <DropShadowEffect Color="#00F5FF" BlurRadius="10" ShadowDepth="0" Opacity="0.9"/>
+                                    </Rectangle.Effect>
+                                </Rectangle>
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Matrix Rain Animation -->
+        <Storyboard x:Key="MatrixAnimation" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="MatrixText1" 
+                           Storyboard.TargetProperty="Opacity"
+                           From="0" To="1" Duration="0:0:2" 
+                           AutoReverse="True"/>
+            <DoubleAnimation Storyboard.TargetName="MatrixText2" 
+                           Storyboard.TargetProperty="Opacity"
+                           From="0" To="1" Duration="0:0:3" 
+                           AutoReverse="True" BeginTime="0:0:1"/>
+            <DoubleAnimation Storyboard.TargetName="MatrixText3" 
+                           Storyboard.TargetProperty="Opacity"
+                           From="0" To="1" Duration="0:0:2.5" 
+                           AutoReverse="True" BeginTime="0:0:0.5"/>
+        </Storyboard>
+
+        <!-- Pulse Animation for Title -->
+        <Storyboard x:Key="TitlePulse" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="MainTitle" 
+                           Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                           From="10" To="20" Duration="0:0:2" 
+                           AutoReverse="True"/>
+        </Storyboard>
+    </Window.Resources>
+
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard Storyboard="{StaticResource MatrixAnimation}"/>
+            <BeginStoryboard Storyboard="{StaticResource TitlePulse}"/>
+        </EventTrigger>
+    </Window.Triggers>
+
+    <!-- Ana Canvas Layout -->
+    <Canvas>
+        <!-- Cyber Grid Pattern Background -->
+        <Rectangle Canvas.Left="0" Canvas.Top="10" Width="590" Height="390" Fill="#0D1117"/>
+
+        <!-- Main Border Frame -->
+        <Border Canvas.Left="10" Canvas.Top="10" 
+                Width="580" Height="380" 
+                Style="{StaticResource CyberBorderStyle}">
+            <Canvas Background="#161B22">
+
+                <!-- Grid Lines for Cyber Effect -->
+                <!-- Vertical Lines -->
+                <Line Canvas.Left="150" Canvas.Top="0" X2="0" Y2="380" Stroke="#00F5FF" StrokeThickness="0.5" Opacity="0.2"/>
+                <Line Canvas.Left="300" Canvas.Top="0" X2="0" Y2="380" Stroke="#00F5FF" StrokeThickness="0.5" Opacity="0.3"/>
+                <Line Canvas.Left="450" Canvas.Top="0" X2="0" Y2="380" Stroke="#00F5FF" StrokeThickness="0.5" Opacity="0.2"/>
+
+                <!-- Horizontal Lines -->
+                <Line Canvas.Left="0" Canvas.Top="100" X2="580" Y2="0" Stroke="#00F5FF" StrokeThickness="0.5" Opacity="0.2"/>
+                <Line Canvas.Left="0" Canvas.Top="200" X2="580" Y2="0" Stroke="#00F5FF" StrokeThickness="0.5" Opacity="0.3"/>
+                <Line Canvas.Left="0" Canvas.Top="300" X2="580" Y2="0" Stroke="#00F5FF" StrokeThickness="0.5" Opacity="0.2"/>
+
+                <!-- Matrix Background Text -->
+                <TextBlock x:Name="MatrixText1" Canvas.Left="50" Canvas.Top="30" 
+                          Text="01001000 01100101 01101100&#x0A;01101100 01101111 01000000&#x0A;01010111 01101111 01110010"
+                          Style="{StaticResource CyberTextStyle}"
+                          FontSize="8" Opacity="0.3"/>
+
+                <TextBlock x:Name="MatrixText2" Canvas.Left="350" Canvas.Top="250" 
+                          Text="11001100 10101010 11110000&#x0A;00110011 01010101 00001111&#x0A;10011001 01100110 10101010"
+                          Style="{StaticResource CyberTextStyle}"
+                          FontSize="8" Opacity="0.3"/>
+
+                <TextBlock x:Name="MatrixText3" Canvas.Left="450" Canvas.Top="50" 
+                          Text="FF00FF00&#x0A;DEADBEEF&#x0A;CAFEBABE&#x0A;1337C0DE"
+                          Style="{StaticResource CyberTextStyle}"
+                          FontSize="8" Opacity="0.3"/>
+
+                <!-- Main Title -->
+                <TextBlock x:Name="MainTitle" Canvas.Left="140" Canvas.Top="80"
+                          Style="{StaticResource CyberTitleStyle}"><Run Text="◤ YAFES "/><Run Language="tr-tr" Text="TOOLS"/><Run Text=" ◥"/></TextBlock>
+
+                <!-- System Initialize Panel -->
+                <Border Canvas.Left="150" Canvas.Top="126" 
+                       Width="257" Height="124" 
+                       Style="{StaticResource CyberBorderStyle}" HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <Canvas Background="#0A0E13" Margin="-2,8,-2,0">
+                        <TextBlock Canvas.Left="11" 
+                                  Text="┌─ SYSTEM INITIALIZATION ─┐" 
+                                  Style="{StaticResource CyberTextStyle}"
+                                  FontSize="16" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+
+                        <TextBlock x:Name="txtStatus" Canvas.Left="29" Canvas.Top="36" 
+                                  Text="│ Checking VC++ Runtimes..." 
+                                  Style="{StaticResource CyberTextStyle}"
+                                  FontSize="12" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+
+                        <TextBlock Canvas.Left="15" Canvas.Top="51" 
+                                  Text="│ Loading System Modules..." 
+                                  Style="{StaticResource CyberTextStyle}"
+                                  FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+
+                        <TextBlock Canvas.Left="15" Canvas.Top="66" 
+                                  Text="│ Initializing Components..." 
+                                  Style="{StaticResource CyberTextStyle}"
+                                  FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+
+                        <TextBlock Canvas.Left="11" Canvas.Top="94" 
+                                  Text="└─────────────────────────┘" 
+                                  Style="{StaticResource CyberTextStyle}"
+                                  FontSize="16" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    </Canvas>
+                </Border>
+
+                <!-- Progress Bar -->
+                <TextBlock Canvas.Left="180" Canvas.Top="265" 
+                          Text="◤ LOADING PROGRESS ◥" 
+                          Style="{StaticResource CyberTextStyle}"
+                          FontSize="12"/>
+
+                <ProgressBar x:Name="progressBar" 
+                            Canvas.Left="150" Canvas.Top="285"
+                            Width="280" Height="25"
+                            Style="{StaticResource CyberProgressStyle}"/>
+
+                <!-- Version Info -->
+                <TextBlock x:Name="txtVersion" Canvas.Left="196" Canvas.Top="346" 
+                          Text="© 2025 Yafes Auto Install v1.0.0"
+                          Style="{StaticResource CyberTextStyle}"
+                          FontSize="9" Opacity="0.7"/>
+
+                <!-- Corner Brackets for Cyber Effect -->
+                <TextBlock Canvas.Left="20" Canvas.Top="20" 
+                          Text="◤" 
+                          Style="{StaticResource CyberTextStyle}"
+                          FontSize="20"/>
+
+                <TextBlock Canvas.Left="540" Canvas.Top="20" 
+                          Text="◥" 
+                          Style="{StaticResource CyberTextStyle}"
+                          FontSize="20"/>
+
+                <TextBlock Canvas.Left="20" Canvas.Top="340" 
+                          Text="◣" 
+                          Style="{StaticResource CyberTextStyle}"
+                          FontSize="20"/>
+
+                <TextBlock Canvas.Left="540" Canvas.Top="340" 
+                          Text="◢" 
+                          Style="{StaticResource CyberTextStyle}"
+                          FontSize="20"/>
+
+                <!-- Scanning Lines Effect -->
+                <Rectangle Canvas.Left="0" Canvas.Top="150" 
+                          Width="580" Height="2" 
+                          Fill="#00F5FF" 
+                          Opacity="0.6">
+                    <Rectangle.Effect>
+                        <DropShadowEffect Color="#00F5FF" BlurRadius="5" ShadowDepth="0" Opacity="0.8"/>
+                    </Rectangle.Effect>
+                </Rectangle>
+
+                <Rectangle Canvas.Left="0" Canvas.Top="250" 
+                          Width="580" Height="1" 
+                          Fill="#00F5FF" 
+                          Opacity="0.4">
+                    <Rectangle.Effect>
+                        <DropShadowEffect Color="#00F5FF" BlurRadius="3" ShadowDepth="0" Opacity="0.6"/>
+                    </Rectangle.Effect>
+                </Rectangle>
+
+            </Canvas>
+        </Border>
+    </Canvas>
+</Window>

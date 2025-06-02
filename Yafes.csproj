@@ -1,0 +1,180 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- SDK'nın otomatik dahil etme özelliklerini kapat -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+  </PropertyGroup>
+
+  <!-- Tüm .cs dosyalarını manuel olarak dahil et -->
+  <ItemGroup>
+    <Compile Include="AppConfig\AssemblyInfo.cs" />
+    <Compile Include="AppConfig\App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Managers\GamesManeger.cs" />
+    <Compile Include="Managers\SystemInfoManager.cs" />
+    <Compile Include="Managers\WallpaperManager.cs" />
+    <Compile Include="Managers\InstallationQueueManager.cs" />
+    <Compile Include="Managers\OperaPasswordManager.cs" />
+    <Compile Include="UI\LoginForm.xaml.cs">
+      <DependentUpon>View\LoginForm.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="UI\Main.xaml.cs">
+      <DependentUpon>View\Main.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="UI\StartupScreen.xaml.cs">
+      <DependentUpon>View\StartupScreen.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="vcruntime\RuntimeInstaller.cs" />
+    <Compile Include="vcruntime\VCRuntimeManager.cs" />
+  </ItemGroup>
+
+  <!-- App.xaml'i ApplicationDefinition olarak tanımla -->
+  <ItemGroup>
+    <ApplicationDefinition Include="AppConfig\App.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </ApplicationDefinition>
+  </ItemGroup>
+
+  <!-- Diğer XAML dosyaları Page olarak -->
+  <ItemGroup>
+    <Page Include="UI\View\LoginForm.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\View\Main.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UI\View\StartupScreen.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="LoadingF.gif" />
+    <None Remove="Resources\Activator_By_ActVer.zip" />
+    <None Remove="Resources\DiscordSetup.exe" />
+    <None Remove="Resources\driver_booster_setup.exe" />
+    <None Remove="Resources\EAappInstaller.exe" />
+    <None Remove="Resources\GifIcons\walpaper.jpg" />
+    <None Remove="Resources\lic.rar" />
+    <None Remove="Resources\lightshot_installer.exe" />
+    <None Remove="Resources\Loading.gif" />
+    <None Remove="Resources\LoadingF.gif" />
+    <None Remove="Resources\LoadingZ.gif" />
+    <None Remove="Resources\logo.ico" />
+    <None Remove="Resources\logo.png" />
+    <None Remove="Resources\npp_installer.exe" />
+    <None Remove="Resources\Opera Passwords.csv" />
+    <None Remove="Resources\OperaSetup.exe" />
+    <None Remove="Resources\RevoUninProSetup.exe" />
+    <None Remove="Resources\steam_installer.exe" />
+    <None Remove="Resources\uTorrent 3.6.0.47196.exe" />
+    <None Remove="Resources\VisualStudioSetup.exe" />
+    <None Remove="Resources\winrar-x64-711tr.exe" />
+    <None Remove="vcruntime\vcredist2008_x64.exe" />
+    <None Remove="vcruntime\vcredist2008_x86.exe" />
+    <None Remove="vcruntime\vcredist2010_x64.exe" />
+    <None Remove="vcruntime\vcredist2010_x86.exe" />
+    <None Remove="vcruntime\vcredist2012_x64.exe" />
+    <None Remove="vcruntime\vcredist2012_x86.exe" />
+    <None Remove="vcruntime\vcredist2013_x64.exe" />
+    <None Remove="vcruntime\vcredist2013_x86.exe" />
+    <None Remove="vcruntime\vcredist2015_2017_2019_2022_x64.exe" />
+    <None Remove="vcruntime\vcredist2015_2017_2019_2022_x86.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\GifIcons\Loading.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Resource Include="Resources\GifIcons\LoadingF.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <EmbeddedResource Include="Resources\Programs\DiscordSetup.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\driver_booster_setup.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\EAappInstaller.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\lightshot_installer.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\npp_installer.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Pass\Opera Passwords.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\OperaSetup.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\RevoUninProSetup.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\steam_installer.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\uTorrent 3.6.0.47196.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\VisualStudioSetup.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\winrar-x64-711tr.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Programs\vcredist2008_x64.exe" />
+    <EmbeddedResource Include="Resources\Programs\vcredist2008_x86.exe" />
+    <EmbeddedResource Include="Resources\Programs\vcredist2010_x64.exe" />
+    <EmbeddedResource Include="Resources\Programs\vcredist2010_x86.exe" />
+    <EmbeddedResource Include="Resources\Programs\vcredist2012_x64.exe" />
+    <EmbeddedResource Include="Resources\Programs\vcredist2012_x86.exe" />
+    <EmbeddedResource Include="Resources\Programs\vcredist2013_x64.exe" />
+    <EmbeddedResource Include="Resources\Programs\vcredist2013_x86.exe" />
+    <EmbeddedResource Include="Resources\Programs\vcredist2015_2017_2019_2022_x64.exe" />
+    <EmbeddedResource Include="Resources\Programs\vcredist2015_2017_2019_2022_x86.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="9.0.5" />
+    <PackageReference Include="WpfAnimatedGif" Version="2.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\GifIcons\LoadingZ.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\GifIcons\logo.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\GifIcons\logo.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\GifIcons\walpaper.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Resources\Drivers\" />
+  </ItemGroup>
+
+</Project>
