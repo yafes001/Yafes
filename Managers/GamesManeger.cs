@@ -27,7 +27,7 @@ namespace Yafes.Managers
         /// <param name="mainWindow">Ana pencere referansı</param>
         public GamesManager(Main mainWindow)
         {
-            _mainWindow = mainWindow;
+            _mainWindow = mainWindow; // Bu satır zaten var olmalı
             _mainWindow.AddLog("🎮 GamesManager başlatılıyor...");
 
             // XAML elementlerini Tag ile bul
@@ -35,12 +35,9 @@ namespace Yafes.Managers
             _gamesPanel = FindElementByTag<Border>(_mainWindow, "GamesPanel");
 
             // Detaylı log
-            _mainWindow.AddLog($"   - TerminalPanel: {(_terminalPanel != null ? "✅ Bulundu" : "❌ BULUNAMADI")}");
-            _mainWindow.AddLog($"   - GamesPanel: {(_gamesPanel != null ? "✅ Bulundu" : "❌ BULUNAMADI")}");
-
             if (_terminalPanel == null || _gamesPanel == null)
             {
-                _mainWindow.AddLog("❌ KRITIK: Panel elementleri bulunamadı! XAML'de Tag attribute'larını kontrol edin.");
+                _mainWindow.AddLog("❌ KRITIK: Panel elementleri bulunamadı!");
                 return;
             }
 
@@ -48,19 +45,16 @@ namespace Yafes.Managers
             _terminalTransform = _terminalPanel.RenderTransform as TranslateTransform;
             _gamesPanelTransform = _gamesPanel.RenderTransform as TranslateTransform;
 
-            _mainWindow.AddLog($"   - TerminalTransform: {(_terminalTransform != null ? "✅ Bulundu" : "❌ BULUNAMADI")}");
-            _mainWindow.AddLog($"   - GamesPanelTransform: {(_gamesPanelTransform != null ? "✅ Bulundu" : "❌ BULUNAMADI")}");
-
             if (_terminalTransform == null || _gamesPanelTransform == null)
             {
-                _mainWindow.AddLog("❌ Panel transform'ları bulunamadı! XAML'de RenderTransform tanımlı mı?");
+                _mainWindow.AddLog("❌ Panel transform'ları eksik!");
                 return;
             }
 
             InitializeGameCards();
             _mainWindow.AddLog("✅ GamesManager başarıyla başlatıldı");
         }
-       
+
         /// <summary>
         /// Oyun kartlarına hover efektleri ve tıklama olayları ekler
         /// </summary>
@@ -99,16 +93,17 @@ namespace Yafes.Managers
         /// <summary>
         /// Games Panel gösterme animasyonu - Log'u aşağıya kaydırır ve games panelini gösterir
         /// </summary>
+        /// <summary>
+        /// Games Panel gösterme animasyonu - Log'u aşağıya kaydırır ve games panelini gösterir
+        /// </summary>
         public void ShowGamesPanel()
         {
             try
             {
-                // NULL KONTROLÜ EKLE
+                // NULL KONTROLÜ
                 if (_terminalPanel == null || _gamesPanel == null)
                 {
                     _mainWindow.AddLog("❌ Panel elementleri bulunamadı! XAML Tag'lerini kontrol edin.");
-                    _mainWindow.AddLog("   - TerminalPanel Tag'i olan Border var mı?");
-                    _mainWindow.AddLog("   - GamesPanel Tag'i olan Border var mı?");
                     return;
                 }
 
@@ -118,9 +113,57 @@ namespace Yafes.Managers
                     return;
                 }
 
-                // Geri kalan kod...
+                _mainWindow.AddLog("🎮 Games paneli açılıyor...");
+
+                // 1. Games Panel'i görünür yap (animasyon öncesi)
                 _gamesPanel.Visibility = Visibility.Visible;
-                // ... animasyonlar vs.
+                _gamesPanel.Opacity = 0; // Başlangıçta şeffaf
+
+                // 2. TERMINAL PANELİ AŞAĞI KAYDIRMA ANİMASYONU
+                var terminalMoveAnimation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 306, // Games panel yüksekliği + margin (290 + 16)
+                    Duration = TimeSpan.FromMilliseconds(600),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+                };
+
+                // 3. TERMINAL PANELİ YÜKSEKLİK KÜÇÜLTME ANİMASYONU
+                var terminalResizeAnimation = new DoubleAnimation
+                {
+                    From = 596,
+                    To = 290, // Terminal panel'in yeni yüksekliği (games için yer aç)
+                    Duration = TimeSpan.FromMilliseconds(600),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+                };
+
+                // 4. GAMES PANELİ YUKARI ÇIKMA ANİMASYONU
+                var gamesPanelShowAnimation = new DoubleAnimation
+                {
+                    From = -50,
+                    To = 0, // Normal pozisyona getir
+                    Duration = TimeSpan.FromMilliseconds(600),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
+                };
+
+                // 5. GAMES PANELİ OPACITY ANİMASYONU
+                var gamesPanelOpacityAnimation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 1, // Tam görünür yap
+                    Duration = TimeSpan.FromMilliseconds(400),
+                    BeginTime = TimeSpan.FromMilliseconds(200) // 200ms gecikme ile başla
+                };
+
+                // 6. ANİMASYONLARI BAŞLAT
+                _terminalTransform.BeginAnimation(TranslateTransform.YProperty, terminalMoveAnimation);
+                _terminalPanel.BeginAnimation(FrameworkElement.HeightProperty, terminalResizeAnimation);
+                _gamesPanelTransform.BeginAnimation(TranslateTransform.YProperty, gamesPanelShowAnimation);
+                _gamesPanel.BeginAnimation(UIElement.OpacityProperty, gamesPanelOpacityAnimation);
+
+                // 7. LOG MESAJI
+                _mainWindow.AddLog("✅ Games kataloğu açıldı - Oyunları inceleyebilirsiniz!");
+                _mainWindow.AddLog("💡 Başka bir kategori seçerek normal görünüme dönebilirsiniz");
             }
             catch (Exception ex)
             {
@@ -402,10 +445,13 @@ namespace Yafes.Managers
                 return null;
             }
 
-            _mainWindow.AddLog($"🔍 '{tag}' Tag'i aranıyor...");
+            return FindElementByTagRecursive<T>(parent, tag);
+        }
+        private T FindElementByTagRecursive<T>(DependencyObject parent, string tag) where T : FrameworkElement
+        {
+            if (parent == null) return null;
 
             int childCount = VisualTreeHelper.GetChildrenCount(parent);
-            _mainWindow.AddLog($"   - Toplam {childCount} child element bulundu");
 
             for (int i = 0; i < childCount; i++)
             {
@@ -417,15 +463,12 @@ namespace Yafes.Managers
                     return element;
                 }
 
-                // Recursive olarak devam et
-                var result = FindElementByTag<T>(child, tag);
+                var result = FindElementByTagRecursive<T>(child, tag);
                 if (result != null) return result;
             }
 
-            _mainWindow.AddLog($"❌ '{tag}' Tag'i bulunamadı!");
             return null;
         }
-
         /// <summary>
         /// Oyun adına göre ikonu döndürür
         /// </summary>

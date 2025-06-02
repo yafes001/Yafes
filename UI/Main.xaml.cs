@@ -124,42 +124,29 @@ namespace Yafes
         {
             try
             {
-                // Butonların varlığını kontrol et
-                CheckButtonReferences();
+                // CheckButtonReferences(); ← BU SATIRI KALDIR!
 
                 // UI tam yüklendikten sonra kategori sistemini başlat
                 InitializeCategories();
 
-                // ✅ GAMES MANAGER'I BURADA BAŞLAT - UI TAM YÜKLENDİKTEN SONRA
+                // Games Manager'ı başlat
                 try
                 {
-                    txtLog.AppendText("\n🎮 Games Manager başlatılıyor...\n");
                     gamesManager = new GamesManager(this);
-
-                    // Games Manager'ın başarıyla başlatıldığını kontrol et
-                    if (gamesManager != null)
-                    {
-                        txtLog.AppendText("🎮 Games Manager başarıyla yüklendi\n");
-                    }
                 }
                 catch (Exception gameEx)
                 {
-                    txtLog.AppendText($"⚠️ Games Manager başlatma hatası: {gameEx.Message}\n");
-                    txtLog.AppendText($"⚠️ Stack Trace: {gameEx.StackTrace}\n");
-                    txtLog.AppendText("🔄 Games özellikleri devre dışı - normal işlevler çalışmaya devam ediyor\n");
+                    txtLog.AppendText($"⚠️ Games Manager hatası: {gameEx.Message}\\n");
                     gamesManager = null;
                 }
 
-                // VARSAYILAN KATEGORİYİ PROGRAMLAR OLARAK AYARLA
+                // Varsayılan kategoriyi ayarla
                 currentCategory = "Programlar";
                 SetSelectedCategory("Programlar");
-
-                txtLog.AppendText("🔧 Kategori sistemi başarıyla yüklendi\n");
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"⚠️ Kategori sistemi yükleme hatası: {ex.Message}\n");
-                txtLog.AppendText("🔄 Manuel kategori seçimi yapılabilir\n");
+                txtLog.AppendText($"⚠️ Yükleme hatası: {ex.Message}\\n");
             }
         }
         private void CheckButtonReferences()
@@ -236,7 +223,8 @@ namespace Yafes
             {
                 if (_lstDrivers == null)
                 {
-                    _lstDrivers = FindElementByTag<ListBox>("MainDriversList");
+                    // HATA BURADA: İki parametre gerekli - parent ve tag
+                    _lstDrivers = FindElementByTag<ListBox>(this, "MainDriversList");
                 }
                 return _lstDrivers;
             }
@@ -599,78 +587,58 @@ namespace Yafes
             try
             {
                 Button clickedButton = sender as Button;
-                if (clickedButton == null)
-                {
-                    txtLog.AppendText("❌ Tıklanan buton null!\n");
-                    return;
-                }
-
-                // Temel bilgileri logla
-                txtLog.AppendText($"🔥 BUTON TIKLANDI!\n");
-                txtLog.AppendText($"   - Name: {clickedButton.Name ?? "NULL"}\n");
-                txtLog.AppendText($"   - Content: {clickedButton.Content ?? "NULL"}\n");
-                txtLog.AppendText($"   - Tag: {clickedButton.Tag ?? "NULL"}\n");
+                if (clickedButton == null) return;
 
                 // Kurulum kontrol
                 if (isInstalling)
                 {
-                    txtLog.AppendText("⚠️ Kurulum devam ediyor, kategori değişimi engellendi\n");
+                    txtLog.AppendText("⚠️ Kurulum devam ediyor, kategori değişimi engellendi\\n");
                     return;
                 }
 
-                // Buton karşılaştırmalarını test et
-                txtLog.AppendText("🔍 Buton karşılaştırma testleri:\n");
-                txtLog.AppendText($"   - btnGamesCategory null mu? {btnGamesCategory == null}\n");
-                txtLog.AppendText($"   - clickedButton == btnGamesCategory? {clickedButton == btnGamesCategory}\n");
-                txtLog.AppendText($"   - btnDriverCategory null mu? {btnDriverCategory == null}\n");
-                txtLog.AppendText($"   - clickedButton == btnDriverCategory? {clickedButton == btnDriverCategory}\n");
-
-                // Hangi buton tıklandığını belirle
+                // Hangi buton tıklandığını belirle ve işle
                 if (clickedButton == btnGamesCategory)
                 {
-                    txtLog.AppendText("🎮 GAMES BUTONU TESPİT EDİLDİ!\n");
-
                     if (gamesManager != null)
                     {
-                        txtLog.AppendText("✅ Games Manager hazır, ShowGamesPanel() çağrılıyor...\n");
                         gamesManager.ShowGamesPanel();
+                        SetSelectedCategory("Games");
                     }
-                    else
-                    {
-                        txtLog.AppendText("❌ Games Manager null!\n");
-                    }
-                }
-                else if (clickedButton == btnDriverCategory)
-                {
-                    txtLog.AppendText("🔧 PROGRAMS BUTONU TESPİT EDİLDİ!\n");
-                    UpdateCategoryView("Programlar");
-                }
-                else if (clickedButton == btnProgramsCategory)
-                {
-                    txtLog.AppendText("📦 DRIVERS BUTONU TESPİT EDİLDİ!\n");
-                    UpdateCategoryView("Sürücüler");
-                }
-                else if (clickedButton == btnToolsCategory)
-                {
-                    txtLog.AppendText("⚙️ TOOLS BUTONU TESPİT EDİLDİ!\n");
-                    currentCategory = "Tools";
                 }
                 else
                 {
-                    txtLog.AppendText("❓ BİLİNMEYEN BUTON!\n");
-                }
+                    // Başka bir butona basıldı - Games panelini gizle
+                    if (gamesManager != null && gamesManager.IsGamesPanelVisible)
+                    {
+                        gamesManager.HideGamesPanel();
+                    }
 
-                txtLog.AppendText("✅ CategoryButton_Click tamamlandı\n\n");
+                    // Normal kategori geçişleri
+                    if (clickedButton == btnDriverCategory)
+                    {
+                        UpdateCategoryView("Programlar");
+                        SetSelectedCategory("Programlar");
+                    }
+                    else if (clickedButton == btnProgramsCategory)
+                    {
+                        UpdateCategoryView("Sürücüler");
+                        SetSelectedCategory("Sürücüler");
+                    }
+                    else if (clickedButton == btnToolsCategory)
+                    {
+                        currentCategory = "Tools";
+                        SetSelectedCategory("Tools");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"💥 CategoryButton_Click HATASI: {ex.Message}\n");
-                txtLog.AppendText($"💥 Stack Trace: {ex.StackTrace}\n");
+                txtLog.AppendText($"❌ Kategori değişim hatası: {ex.Message}\\n");
             }
         }
-        private T FindElementByTag<T>(string tag) where T : FrameworkElement
+        private T FindElementByTag<T>(DependencyObject parent, string tag) where T : FrameworkElement
         {
-            return FindElementByTagRecursive<T>(this, tag);
+            return FindElementByTagRecursive<T>(parent, tag);
         }
 
         private T FindElementByTagRecursive<T>(DependencyObject parent, string tag) where T : FrameworkElement
@@ -763,46 +731,22 @@ namespace Yafes
         {
             try
             {
-                // Eğer aynı kategoriye tekrar tıklandıysa, hiçbir şey yapma
-                if (currentCategory == category)
-                {
-                    txtLog.AppendText($"⚠️ {category} kategorisi zaten seçili\n");
-                    return;
-                }
+                // Aynı kategoriye tekrar tıklandıysa hiçbir şey yapma
+                if (currentCategory == category) return;
 
-                // Mevcut görünümdeki seçimleri kaydet
+                // Mevcut seçimleri kaydet
                 if (!string.IsNullOrEmpty(currentCategory))
                 {
-                    try
-                    {
-                        SaveCurrentSelections(currentCategory);
-                        txtLog.AppendText($"💾 {currentCategory} kategorisi seçimleri kaydedildi\n");
-                    }
-                    catch (Exception saveEx)
-                    {
-                        txtLog.AppendText($"⚠️ Kategori seçimleri kaydetme hatası: {saveEx.Message}\n");
-                    }
+                    SaveCurrentSelections(currentCategory);
                 }
 
                 // Kategori değiştir
-                string oldCategory = currentCategory;
                 currentCategory = category;
-
-                try
-                {
-                    RefreshListWithSavedSelections(category);
-                    txtLog.AppendText($"✅ {category} kategorisi yüklendi\n");
-                }
-                catch (Exception refreshEx)
-                {
-                    txtLog.AppendText($"❌ Liste yenileme hatası: {refreshEx.Message}\n");
-                    // Hata durumunda önceki kategoriyi geri yükle
-                    currentCategory = oldCategory;
-                }
+                RefreshListWithSavedSelections(category);
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ Kategori görünüm güncelleme hatası: {ex.Message}\n");
+                txtLog.AppendText($"❌ Kategori güncelleme hatası: {ex.Message}\\n");
             }
         }
 
@@ -814,68 +758,68 @@ namespace Yafes
         {
             try
             {
-                // Önce tüm butonları varsayılan renge çevir (turuncu)
-                var defaultColor = new SolidColorBrush(Color.FromRgb(255, 165, 0)); // #FFA500 turuncu
+                // Renk tanımları
+                var defaultColor = new SolidColorBrush(Color.FromRgb(255, 165, 0)); // Turuncu
                 var selectedColor = Brushes.Black; // Siyah
 
-                // Null kontrolü ile butonları güvenli şekilde renklendir
+                // Tüm butonları varsayılan renge çevir
                 if (btnDriverCategory != null)
+                {
                     btnDriverCategory.Foreground = defaultColor;
+                    btnDriverCategory.Tag = "Programlar";
+                }
                 if (btnProgramsCategory != null)
+                {
                     btnProgramsCategory.Foreground = defaultColor;
+                    btnProgramsCategory.Tag = "Sürücüler";
+                }
                 if (btnGamesCategory != null)
+                {
                     btnGamesCategory.Foreground = defaultColor;
+                    btnGamesCategory.Tag = null;
+                }
                 if (btnToolsCategory != null)
+                {
                     btnToolsCategory.Foreground = defaultColor;
+                    btnToolsCategory.Tag = null;
+                }
 
-                // Önce tüm kategori butonlarının Tag'lerini temizle
-                if (btnDriverCategory != null)
-                    btnDriverCategory.Tag = "Programlar";     // Reset to category name
-                if (btnProgramsCategory != null)
-                    btnProgramsCategory.Tag = "Sürücüler";   // Reset to category name
-                if (btnGamesCategory != null)
-                    btnGamesCategory.Tag = null;             // Games için özel durum
-                if (btnToolsCategory != null)
-                    btnToolsCategory.Tag = null;             // Tools için özel durum
-
-                // Seçili kategoriye göre doğru butona "Selected" tag'ini ver ve siyah renk yap
+                // Seçili kategoriye göre renk değiştir
                 switch (selectedCategory)
                 {
                     case "Sürücüler":
                         if (btnProgramsCategory != null)
                         {
-                            btnProgramsCategory.Tag = "Selected"; // "📦 Drivers" butonu seçili
-                            btnProgramsCategory.Foreground = selectedColor; // SIYAH
+                            btnProgramsCategory.Tag = "Selected";
+                            btnProgramsCategory.Foreground = selectedColor;
                         }
                         break;
                     case "Programlar":
                         if (btnDriverCategory != null)
                         {
-                            btnDriverCategory.Tag = "Selected"; // "🔧 Programs" butonu seçili
-                            btnDriverCategory.Foreground = selectedColor; // SIYAH
+                            btnDriverCategory.Tag = "Selected";
+                            btnDriverCategory.Foreground = selectedColor;
                         }
                         break;
                     case "Games":
                         if (btnGamesCategory != null)
                         {
-                            btnGamesCategory.Tag = "Selected"; // "🎮 Games" butonu seçili
-                            btnGamesCategory.Foreground = selectedColor; // SIYAH
+                            btnGamesCategory.Tag = "Selected";
+                            btnGamesCategory.Foreground = selectedColor;
                         }
                         break;
                     case "Tools":
                         if (btnToolsCategory != null)
                         {
-                            btnToolsCategory.Tag = "Selected"; // "⚙️ Tools" butonu seçili
-                            btnToolsCategory.Foreground = selectedColor; // SIYAH
+                            btnToolsCategory.Tag = "Selected";
+                            btnToolsCategory.Foreground = selectedColor;
                         }
                         break;
                 }
-
-                txtLog.AppendText($"✅ Buton görünümleri güncellendi: {selectedCategory}\n");
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ SetSelectedCategory hatası: {ex.Message}\n");
+                txtLog.AppendText($"❌ Buton güncelleme hatası: {ex.Message}\\n");
             }
         }
 
@@ -983,12 +927,7 @@ namespace Yafes
         {
             try
             {
-                // lstDrivers güvenlik kontrolü
-                if (lstDrivers == null)
-                {
-                    txtLog.AppendText("❌ Liste bulunamadı, kategori değiştirilemedi\n");
-                    return;
-                }
+                if (lstDrivers == null) return;
 
                 lstDrivers.Items.Clear();
 
@@ -1008,31 +947,23 @@ namespace Yafes
                             isChecked = savedSelections[driver.Name];
                         }
 
-                        try
+                        var checkBox = new CheckBox
                         {
-                            var checkBox = new CheckBox
-                            {
-                                Content = driver.Name,
-                                IsChecked = isChecked,
-                                Tag = driver,
-                                Margin = new Thickness(5, 2, 5, 2),
-                                VerticalContentAlignment = VerticalAlignment.Center,
-                                Foreground = new SolidColorBrush(Color.FromRgb(0, 245, 255)),
-                                FontFamily = new FontFamily("Consolas"),
-                                FontSize = 11,
-                                FontWeight = FontWeights.Bold
-                            };
+                            Content = driver.Name,
+                            IsChecked = isChecked,
+                            Tag = driver,
+                            Margin = new Thickness(5, 2, 5, 2),
+                            VerticalContentAlignment = VerticalAlignment.Center,
+                            Foreground = new SolidColorBrush(Color.FromRgb(0, 245, 255)),
+                            FontFamily = new FontFamily("Consolas"),
+                            FontSize = 11,
+                            FontWeight = FontWeights.Bold
+                        };
 
-                            var item = new ListBoxItem();
-                            item.Content = checkBox;
-                            lstDrivers.Items.Add(item);
-                        }
-                        catch (Exception checkboxEx)
-                        {
-                            txtLog.AppendText($"⚠️ {driver.Name} checkbox oluşturma hatası: {checkboxEx.Message}\n");
-                        }
+                        var item = new ListBoxItem();
+                        item.Content = checkBox;
+                        lstDrivers.Items.Add(item);
                     }
-                    txtLog.AppendText($"📦 {masterDrivers.Count} sürücü yüklendi\n");
                 }
                 else if (category == "Programlar")
                 {
@@ -1044,39 +975,31 @@ namespace Yafes
                             isChecked = savedSelections[program.Name];
                         }
 
-                        try
+                        var checkBox = new CheckBox
                         {
-                            var checkBox = new CheckBox
-                            {
-                                Content = program.Name,
-                                IsChecked = isChecked,
-                                Tag = program,
-                                Margin = new Thickness(5, 2, 5, 2),
-                                VerticalContentAlignment = VerticalAlignment.Center,
-                                Foreground = new SolidColorBrush(Color.FromRgb(0, 245, 255)),
-                                FontFamily = new FontFamily("Consolas"),
-                                FontSize = 11,
-                                FontWeight = FontWeights.Bold
-                            };
+                            Content = program.Name,
+                            IsChecked = isChecked,
+                            Tag = program,
+                            Margin = new Thickness(5, 2, 5, 2),
+                            VerticalContentAlignment = VerticalAlignment.Center,
+                            Foreground = new SolidColorBrush(Color.FromRgb(0, 245, 255)),
+                            FontFamily = new FontFamily("Consolas"),
+                            FontSize = 11,
+                            FontWeight = FontWeights.Bold
+                        };
 
-                            var item = new ListBoxItem();
-                            item.Content = checkBox;
-                            lstDrivers.Items.Add(item);
-                        }
-                        catch (Exception checkboxEx)
-                        {
-                            txtLog.AppendText($"⚠️ {program.Name} checkbox oluşturma hatası: {checkboxEx.Message}\n");
-                        }
+                        var item = new ListBoxItem();
+                        item.Content = checkBox;
+                        lstDrivers.Items.Add(item);
                     }
-                    txtLog.AppendText($"🔧 {masterPrograms.Count} program yüklendi\n");
                 }
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ Liste yenileme hatası: {ex.Message}\n");
+                txtLog.AppendText($"❌ Liste yenileme hatası: {ex.Message}\\n");
             }
         }
-        
+
 
         private void UpdateDriverList()
         {
