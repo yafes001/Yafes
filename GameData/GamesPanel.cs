@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,16 +7,16 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using Yafes.GameData;
+using Yafes.Data;  // Değiştirildi: GameData -> Data
 using Yafes.Managers;
 
 namespace Yafes.GameData
 {
     public partial class GamesPanel : UserControl
     {
-        // Properties
-        private List<Yafes.GameData.GameData> _allGames = new List<Yafes.GameData.GameData>();
-        private List<Yafes.GameData.GameData> _filteredGames = new List<Yafes.GameData.GameData>();
+        // Properties - artık clean references
+        private List<GameData> _allGames = new List<GameData>();
+        private List<GameData> _filteredGames = new List<GameData>();
         private string _currentSearchText = string.Empty;
         private string _currentCategory = "All";
 
@@ -32,13 +32,13 @@ namespace Yafes.GameData
         private TextBlock _noGamesText = null!;
 
         // Configuration
-        private const int CARDS_PER_ROW = 3; // 460px cards, ~1380px width needed
+        private const int CARDS_PER_ROW = 3;
         private const double CARD_MARGIN = 10;
 
-        // Events
-        public event Action<Yafes.GameData.GameData>? GameSelected;
-        public event Action<Yafes.GameData.GameData>? InstallRequested;
-        public event Action<Yafes.GameData.GameData>? UninstallRequested;
+        // Events - artık erişim düzeyi tutarlı
+        public event Action<GameData>? GameSelected;
+        public event Action<GameData>? InstallRequested;
+        public event Action<GameData>? UninstallRequested;
 
         // Loading state
         private bool _isLoading = false;
@@ -48,7 +48,7 @@ namespace Yafes.GameData
             InitializeComponent();
             CreateUI();
             SetupEventHandlers();
-            _ = LoadGamesAsync(); // Fire and forget
+            _ = LoadGamesAsync();
         }
 
         /// <summary>
@@ -56,20 +56,17 @@ namespace Yafes.GameData
         /// </summary>
         private void CreateUI()
         {
-            // Ana grid
             _mainGrid = new Grid();
-            _mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
-            _mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Content
+            _mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            _mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
             CreateHeaderPanel();
             CreateContentPanel();
-
-            // Ana grid'i content olarak ayarla
             Content = _mainGrid;
         }
 
         /// <summary>
-        /// Header panel (search, filter, stats)
+        /// Header panel oluşturur
         /// </summary>
         private void CreateHeaderPanel()
         {
@@ -80,11 +77,7 @@ namespace Yafes.GameData
                 Margin = new Thickness(0, 0, 0, 10)
             };
 
-            // Top row: Search ve Category
-            var topRow = new Grid
-            {
-                Margin = new Thickness(15, 10, 15, 5)
-            };
+            var topRow = new Grid { Margin = new Thickness(15, 10, 15, 5) };
             topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
             topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
@@ -106,7 +99,6 @@ namespace Yafes.GameData
                 VerticalAlignment = VerticalAlignment.Center
             };
 
-            // Search placeholder
             var searchPlaceholder = new TextBlock
             {
                 Text = "🔍 Search games...",
@@ -120,7 +112,6 @@ namespace Yafes.GameData
             var searchGrid = new Grid();
             searchGrid.Children.Add(_searchBox);
             searchGrid.Children.Add(searchPlaceholder);
-
             searchBorder.Child = searchGrid;
             Grid.SetColumn(searchBorder, 0);
 
@@ -149,7 +140,6 @@ namespace Yafes.GameData
             };
             Grid.SetColumn(_statsText, 2);
 
-            // Search placeholder visibility binding
             _searchBox.TextChanged += (s, e) =>
             {
                 searchPlaceholder.Visibility = string.IsNullOrEmpty(_searchBox.Text) ? Visibility.Visible : Visibility.Collapsed;
@@ -159,18 +149,16 @@ namespace Yafes.GameData
             topRow.Children.Add(searchBorder);
             topRow.Children.Add(_categoryComboBox);
             topRow.Children.Add(_statsText);
-
             _headerPanel.Children.Add(topRow);
             Grid.SetRow(_headerPanel, 0);
             _mainGrid.Children.Add(_headerPanel);
         }
 
         /// <summary>
-        /// Content panel (games grid)
+        /// Content panel oluşturur
         /// </summary>
         private void CreateContentPanel()
         {
-            // ScrollViewer for games
             _scrollViewer = new ScrollViewer
             {
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -178,7 +166,6 @@ namespace Yafes.GameData
                 Background = new SolidColorBrush(Color.FromRgb(25, 25, 30))
             };
 
-            // WrapPanel for game cards
             _gamesWrapPanel = new WrapPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -186,7 +173,6 @@ namespace Yafes.GameData
                 HorizontalAlignment = HorizontalAlignment.Center
             };
 
-            // Loading text
             _loadingText = new TextBlock
             {
                 Text = "🎮 Loading games...",
@@ -197,7 +183,6 @@ namespace Yafes.GameData
                 Visibility = Visibility.Visible
             };
 
-            // No games text
             _noGamesText = new TextBlock
             {
                 Text = "🚫 No games found",
@@ -208,14 +193,11 @@ namespace Yafes.GameData
                 Visibility = Visibility.Collapsed
             };
 
-            // Container grid for content states
             var contentGrid = new Grid();
             contentGrid.Children.Add(_scrollViewer);
             contentGrid.Children.Add(_loadingText);
             contentGrid.Children.Add(_noGamesText);
-
             _scrollViewer.Content = _gamesWrapPanel;
-
             Grid.SetRow(contentGrid, 1);
             _mainGrid.Children.Add(contentGrid);
         }
@@ -225,7 +207,6 @@ namespace Yafes.GameData
         /// </summary>
         private void SetupEventHandlers()
         {
-            // Category selection
             _categoryComboBox.SelectionChanged += async (s, e) =>
             {
                 if (_categoryComboBox.SelectedItem is ComboBoxItem item)
@@ -235,7 +216,6 @@ namespace Yafes.GameData
                 }
             };
 
-            // Search with debounce
             var searchTimer = new System.Windows.Threading.DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(300)
@@ -262,16 +242,9 @@ namespace Yafes.GameData
             try
             {
                 SetLoadingState(true);
-
-                // GameDataManager'dan oyunları al
                 _allGames = await GameDataManager.GetAllGamesAsync();
-
-                // Kategorileri yükle
                 await LoadCategoriesAsync();
-
-                // Oyunları filtrele ve göster
                 await FilterGamesAsync(string.Empty);
-
                 SetLoadingState(false);
             }
             catch (Exception ex)
@@ -282,36 +255,24 @@ namespace Yafes.GameData
         }
 
         /// <summary>
-        /// Kategorileri combobox'a yükler
+        /// Kategorileri yükler
         /// </summary>
         private async Task LoadCategoriesAsync()
         {
             try
             {
                 var categories = await GameDataManager.GetAvailableCategoriesAsync();
-
                 _categoryComboBox.Items.Clear();
 
-                // "All" seçeneği ekle
-                var allItem = new ComboBoxItem
-                {
-                    Content = "All",
-                    Foreground = Brushes.White
-                };
+                var allItem = new ComboBoxItem { Content = "All", Foreground = Brushes.White };
                 _categoryComboBox.Items.Add(allItem);
 
-                // Kategorileri ekle
                 foreach (var category in categories)
                 {
-                    var item = new ComboBoxItem
-                    {
-                        Content = category,
-                        Foreground = Brushes.White
-                    };
+                    var item = new ComboBoxItem { Content = category, Foreground = Brushes.White };
                     _categoryComboBox.Items.Add(item);
                 }
 
-                // "All" seçili yap
                 _categoryComboBox.SelectedIndex = 0;
             }
             catch (Exception ex)
@@ -321,13 +282,13 @@ namespace Yafes.GameData
         }
 
         /// <summary>
-        /// Oyunları filtreler ve gösterir
+        /// Oyunları filtreler
         /// </summary>
         private async Task FilterGamesAsync(string searchText)
         {
             try
             {
-                List<Yafes.GameData.GameData> filteredGames;
+                List<GameData> filteredGames;
 
                 if (string.IsNullOrWhiteSpace(searchText) && _currentCategory == "All")
                 {
@@ -335,7 +296,6 @@ namespace Yafes.GameData
                 }
                 else
                 {
-                    // Search text filtrelemesi
                     if (!string.IsNullOrWhiteSpace(searchText))
                     {
                         filteredGames = await GameDataManager.SearchGamesAsync(searchText);
@@ -345,7 +305,6 @@ namespace Yafes.GameData
                         filteredGames = _allGames;
                     }
 
-                    // Category filtrelemesi
                     if (_currentCategory != "All")
                     {
                         filteredGames = filteredGames.Where(g =>
@@ -364,13 +323,12 @@ namespace Yafes.GameData
         }
 
         /// <summary>
-        /// Oyunları ekranda gösterir
+        /// Oyunları gösterir
         /// </summary>
         private async Task DisplayGamesAsync()
         {
             try
             {
-                // Mevcut kartları temizle
                 _gamesWrapPanel.Children.Clear();
 
                 if (!_filteredGames.Any())
@@ -383,19 +341,14 @@ namespace Yafes.GameData
                 _noGamesText.Visibility = Visibility.Collapsed;
                 _scrollViewer.Visibility = Visibility.Visible;
 
-                // Game card'ları oluştur
                 foreach (var game in _filteredGames)
                 {
                     var gameCard = new GameCard(game);
-
-                    // Events bağla
                     gameCard.GameSelected += OnGameSelected;
                     gameCard.InstallRequested += OnInstallRequested;
                     gameCard.UninstallRequested += OnUninstallRequested;
-
                     _gamesWrapPanel.Children.Add(gameCard);
 
-                    // UI responsive tutmak için küçük delay
                     if (_gamesWrapPanel.Children.Count % 10 == 0)
                     {
                         await Task.Delay(1);
@@ -411,20 +364,9 @@ namespace Yafes.GameData
         /// <summary>
         /// Game card events
         /// </summary>
-        private void OnGameSelected(Yafes.GameData.GameData game)
-        {
-            GameSelected?.Invoke(game);
-        }
-
-        private void OnInstallRequested(Yafes.GameData.GameData game)
-        {
-            InstallRequested?.Invoke(game);
-        }
-
-        private void OnUninstallRequested(Yafes.GameData.GameData game)
-        {
-            UninstallRequested?.Invoke(game);
-        }
+        private void OnGameSelected(GameData game) => GameSelected?.Invoke(game);
+        private void OnInstallRequested(GameData game) => InstallRequested?.Invoke(game);
+        private void OnUninstallRequested(GameData game) => UninstallRequested?.Invoke(game);
 
         /// <summary>
         /// İstatistikleri günceller
@@ -446,7 +388,7 @@ namespace Yafes.GameData
         }
 
         /// <summary>
-        /// Loading state'i ayarlar
+        /// Loading state ayarlar
         /// </summary>
         private void SetLoadingState(bool isLoading)
         {
@@ -457,7 +399,7 @@ namespace Yafes.GameData
         }
 
         /// <summary>
-        /// Hata mesajı gösterir
+        /// Hata gösterir
         /// </summary>
         private void ShowError(string message)
         {
@@ -466,7 +408,7 @@ namespace Yafes.GameData
         }
 
         /// <summary>
-        /// Public methods for external control
+        /// Public metodlar
         /// </summary>
         public async Task RefreshGamesAsync()
         {
@@ -480,13 +422,10 @@ namespace Yafes.GameData
             {
                 await GameDataManager.UpdateGameInstallStatusAsync(gameId, isInstalled);
 
-                // UI'daki kartı güncelle
                 var gameCard = _gamesWrapPanel.Children.OfType<GameCard>()
                     .FirstOrDefault(card => card.GameData?.Id == gameId);
-
                 gameCard?.SetInstallStatus(isInstalled);
 
-                // Stats'ı güncelle
                 var game = _allGames.FirstOrDefault(g => g.Id == gameId);
                 if (game != null)
                 {
@@ -500,27 +439,19 @@ namespace Yafes.GameData
             }
         }
 
-        public void SetSearchText(string searchText)
-        {
-            _searchBox.Text = searchText;
-        }
+        public void SetSearchText(string searchText) => _searchBox.Text = searchText;
 
         public void SetCategory(string category)
         {
             var item = _categoryComboBox.Items.OfType<ComboBoxItem>()
                 .FirstOrDefault(i => i.Content.ToString() == category);
-
-            if (item != null)
-            {
-                _categoryComboBox.SelectedItem = item;
-            }
+            if (item != null) _categoryComboBox.SelectedItem = item;
         }
 
         public void SetGameCardLoading(string gameId, bool isLoading)
         {
             var gameCard = _gamesWrapPanel.Children.OfType<GameCard>()
                 .FirstOrDefault(card => card.GameData?.Id == gameId);
-
             gameCard?.SetLoading(isLoading);
         }
 
@@ -529,12 +460,10 @@ namespace Yafes.GameData
         /// </summary>
         private void Cleanup()
         {
-            // Event cleanup
             GameSelected = null;
             InstallRequested = null;
             UninstallRequested = null;
 
-            // Card events cleanup
             foreach (var card in _gamesWrapPanel.Children.OfType<GameCard>())
             {
                 card.GameSelected -= OnGameSelected;
