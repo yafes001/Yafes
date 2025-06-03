@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -6,16 +6,16 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
-using Yafes.GameData;
+using Yafes.Data;  // Değiştirildi: GameData -> Data
 using Yafes.Managers;
 
 namespace Yafes.GameData
 {
     public partial class GameCard : UserControl
     {
-        // Game data property
-        private Yafes.GameData.GameData? _gameData;
-        public Yafes.GameData.GameData? GameData
+        // Game data property - artık çakışma yok
+        private GameData? _gameData;
+        public GameData? GameData  // Artık clean referans
         {
             get => _gameData;
             set
@@ -25,10 +25,10 @@ namespace Yafes.GameData
             }
         }
 
-        // Events  
-        public event Action<Yafes.GameData.GameData>? GameSelected;
-        public event Action<Yafes.GameData.GameData>? InstallRequested;
-        public event Action<Yafes.GameData.GameData>? UninstallRequested;
+        // Events - artık erişim düzeyi tutarlı
+        public event Action<GameData>? GameSelected;
+        public event Action<GameData>? InstallRequested;
+        public event Action<GameData>? UninstallRequested;
 
         // UI Elements (will be created programmatically)
         private Border _mainBorder = null!;
@@ -55,7 +55,7 @@ namespace Yafes.GameData
             SetupEventHandlers();
         }
 
-        public GameCard(Yafes.GameData.GameData? gameData) : this()
+        public GameCard(GameData? gameData) : this()  // Clean constructor
         {
             GameData = gameData;
         }
