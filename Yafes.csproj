@@ -19,16 +19,13 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="GameData\ConfigManager.cs" />
     <Compile Include="GameData\GameCard.cs" />
-    <Compile Include="GameData\GameCardManager.cs" />
     <Compile Include="GameData\GameData.cs" />
     <Compile Include="GameData\GameDataManager.cs" />
     <Compile Include="GameData\GameInstaller.cs" />
     <Compile Include="GameData\GamesDatabase.cs" />
     <Compile Include="GameData\GamesManeger.cs" />
     <Compile Include="GameData\GamesPanel.cs" />
-    <Compile Include="GameData\GameStats.cs" />
     <Compile Include="Managers\ImageManager.cs" />
     <Compile Include="Managers\SystemInfoManager.cs" />
     <Compile Include="Managers\WallpaperManager.cs" />

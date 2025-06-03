@@ -777,82 +777,540 @@ namespace Yafes
         {
             try
             {
-                txtLog.AppendText("🔄 LoadRealGamesIntoXAMLPanel başlatıldı\\n");
+                txtLog.AppendText("🔄 LoadRealGamesIntoXAMLPanel başlatıldı\n");
 
-                // YÖNTEM 1: Name ile bul
-                var gamesGrid = FindChild<UniformGrid>(gamesPanel, "gamesGrid");
-                txtLog.AppendText($"🔍 Name ile arama: {(gamesGrid != null ? "✅ BULUNDU" : "❌ BULUNAMADI")}\\n");
-
-                // YÖNTEM 2: Tag ile bul (eğer Name çalışmazsa)
-                if (gamesGrid == null)
-                {
-                    gamesGrid = FindElementByTag<UniformGrid>(gamesPanel, "gamesGrid");
-                    txtLog.AppendText($"🔍 Tag ile arama: {(gamesGrid != null ? "✅ BULUNDU" : "❌ BULUNAMADI")}\\n");
-                }
-
-                // YÖNTEM 3: Type bazlı arama (son çare)
-                if (gamesGrid == null)
-                {
-                    gamesGrid = FindChild<UniformGrid>(gamesPanel, null); // Name null = ilk UniformGrid'i bul
-                    txtLog.AppendText($"🔍 Type bazlı arama: {(gamesGrid != null ? "✅ BULUNDU" : "❌ BULUNAMADI")}\\n");
-                }
-
-                // YÖNTEM 4: Visual Tree taraması (kesin çözüm)
-                if (gamesGrid == null)
-                {
-                    gamesGrid = FindUniformGridInVisualTree(gamesPanel);
-                    txtLog.AppendText($"🔍 Visual Tree tarama: {(gamesGrid != null ? "✅ BULUNDU" : "❌ BULUNAMADI")}\\n");
-                }
+                // UniformGrid'i bul - ÇOKLU YÖNTEM
+                var gamesGrid = FindUniformGridMultipleWays(gamesPanel);
 
                 if (gamesGrid == null)
                 {
-                    txtLog.AppendText("❌ Tüm yöntemler başarısız! UniformGrid bulunamadı\\n");
-
-                    // XAML yapısını debug et
-                    txtLog.AppendText("🔍 XAML yapısı debug ediliyor...\\n");
+                    txtLog.AppendText("❌ KRITIK: UniformGrid bulunamadı! XAML yapısı debug ediliyor...\n");
                     DebugXAMLStructure(gamesPanel, 0);
-                    return;
+
+                    // Son çare: Yeni UniformGrid oluştur
+                    gamesGrid = CreateFallbackUniformGrid(gamesPanel);
+                    if (gamesGrid == null)
+                    {
+                        txtLog.AppendText("❌ HATA: Fallback UniformGrid de oluşturulamadı!\n");
+                        return;
+                    }
                 }
 
-                txtLog.AppendText($"✅ UniformGrid bulundu! Columns: {gamesGrid.Columns}\\n");
+                txtLog.AppendText($"✅ UniformGrid bulundu! Columns: {gamesGrid.Columns}\n");
 
-                // Gerçek oyun verilerini yükle
-                txtLog.AppendText("📊 GameDataManager'dan oyunlar alınıyor...\\n");
+                // Gerçek oyun verilerini yükle - GELİŞTİRİLMİŞ
+                txtLog.AppendText("📊 GameDataManager'dan oyunlar alınıyor...\n");
                 var games = await Yafes.Managers.GameDataManager.GetAllGamesAsync();
+
+                txtLog.AppendText($"📊 GameDataManager'dan {games?.Count ?? 0} oyun geldi\n");
 
                 if (games == null || games.Count == 0)
                 {
-                    txtLog.AppendText("⚠️ Oyun verisi bulunamadı - static kartları koru\\n");
-                    return;
+                    txtLog.AppendText("⚠️ GameDataManager'dan oyun gelmedi, fallback stratejiler deneniyor...\n");
+
+                    // FALLBACK 1: Cache temizleyip tekrar dene
+                    Yafes.Managers.GameDataManager.ClearCache();
+                    games = await Yafes.Managers.GameDataManager.GetAllGamesAsync();
+
+                    if (games == null || games.Count == 0)
+                    {
+                        txtLog.AppendText("⚠️ Cache temizleme de işe yaramadı, statik oyun listesi oluşturuluyor...\n");
+
+                        // FALLBACK 2: Statik oyun listesi oluştur
+                        games = CreateFallbackGamesList();
+                    }
                 }
 
-                txtLog.AppendText($"✅ {games.Count} oyun bulundu\\n");
+                txtLog.AppendText($"✅ Toplam işlenecek oyun: {games.Count}\n");
 
                 // Mevcut kartları temizle
                 int existingCount = gamesGrid.Children.Count;
                 gamesGrid.Children.Clear();
-                txtLog.AppendText($"🧹 {existingCount} mevcut kart temizlendi\\n");
+                txtLog.AppendText($"🧹 {existingCount} mevcut kart temizlendi\n");
 
-                // Gerçek oyun kartlarını ekle (ilk 8)
+                // Gerçek oyun kartlarını ekle
                 int addedCount = 0;
-                foreach (var game in games.Take(8))
+                int maxCards = Math.Min(games.Count, 8); // Maksimum 8 kart göster
+
+                foreach (var game in games.Take(maxCards))
                 {
-                    var gameCard = CreateGameCard(game);
-                    gamesGrid.Children.Add(gameCard);
-                    addedCount++;
+                    try
+                    {
+                        var gameCard = CreateAdvancedGameCard(game);
+                        gamesGrid.Children.Add(gameCard);
+                        addedCount++;
+
+                        // Her 4 kartta bir küçük delay (UI responsive kalsın)
+                        if (addedCount % 4 == 0)
+                        {
+                            await Task.Delay(10);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        txtLog.AppendText($"❌ Kart oluşturma hatası: {game.Name} - {ex.Message}\n");
+                    }
                 }
 
-                txtLog.AppendText($"✅ {addedCount} oyun kartı eklendi (Toplam oyun: {games.Count})\\n");
+                txtLog.AppendText($"✅ {addedCount} oyun kartı başarıyla eklendi!\n");
+                txtLog.AppendText($"🎮 Toplam oyun: {games.Count}, Gösterilen: {addedCount}\n");
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ LoadRealGamesIntoXAMLPanel HATA: {ex.Message}\\n");
-                txtLog.AppendText($"   Stack: {ex.StackTrace?.Substring(0, Math.Min(200, ex.StackTrace?.Length ?? 0))}...\\n");
-                //                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                //                                                                      StackTrace null olabilir ama Length değil!
+                txtLog.AppendText($"❌ LoadRealGamesIntoXAMLPanel KRITIK HATA: {ex.Message}\n");
+                txtLog.AppendText($"   Stack: {ex.StackTrace?.Substring(0, Math.Min(200, ex.StackTrace?.Length ?? 0))}...\n");
+
+                // Hata durumunda bile bir şeyler göster
+                await CreateEmergencyGameCards(gamesPanel);
+            }
+        }
+        private UniformGrid CreateFallbackUniformGrid(Border gamesPanel)
+        {
+            try
+            {
+                txtLog.AppendText("🆘 Fallback UniformGrid oluşturuluyor...\n");
+
+                // GamesPanel'in content'ini al
+                var content = gamesPanel.Child as Canvas;
+                if (content == null)
+                {
+                    txtLog.AppendText("❌ GamesPanel Canvas'ı bulunamadı\n");
+                    return null;
+                }
+
+                // ScrollViewer bul
+                ScrollViewer scrollViewer = null;
+                foreach (var child in content.Children)
+                {
+                    if (child is ScrollViewer sv)
+                    {
+                        scrollViewer = sv;
+                        break;
+                    }
+                }
+
+                if (scrollViewer == null)
+                {
+                    txtLog.AppendText("❌ ScrollViewer bulunamadı\n");
+                    return null;
+                }
+
+                // Yeni UniformGrid oluştur
+                var newGrid = new UniformGrid
+                {
+                    Columns = 4,
+                    Margin = new Thickness(10)
+                };
+
+                // ScrollViewer'a ata
+                scrollViewer.Content = newGrid;
+                txtLog.AppendText("✅ Yeni UniformGrid oluşturuldu ve atandı\n");
+
+                return newGrid;
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"❌ CreateFallbackUniformGrid hatası: {ex.Message}\n");
+                return null;
+            }
+        }
+        private List<Yafes.Models.GameData> CreateFallbackGamesList()
+        {
+            var fallbackGames = new List<Yafes.Models.GameData>
+            {
+                new Yafes.Models.GameData
+                {
+                    Id = "steam",
+                    Name = "Steam",
+                    ImageName = "steam.png",
+                    Category = "Platform",
+                    Size = "150 MB",
+                    IsInstalled = false,
+                    Description = "PC Gaming Platform"
+                },
+                new Yafes.Models.GameData
+                {
+                    Id = "epic_games",
+                    Name = "Epic Games",
+                    ImageName = "epic_games.png",
+                    Category = "Platform",
+                    Size = "200 MB",
+                    IsInstalled = false,
+                    Description = "Epic Games Store"
+                },
+                new Yafes.Models.GameData
+                {
+                    Id = "gog_galaxy",
+                    Name = "GOG Galaxy",
+                    ImageName = "gog_galaxy.png",
+                    Category = "Platform",
+                    Size = "80 MB",
+                    IsInstalled = false,
+                    Description = "DRM-Free Gaming Platform"
+                },
+                new Yafes.Models.GameData
+                {
+                    Id = "origin",
+                    Name = "Origin",
+                    ImageName = "origin.png",
+                    Category = "Platform",
+                    Size = "120 MB",
+                    IsInstalled = false,
+                    Description = "EA Games Platform"
+                },
+                new Yafes.Models.GameData
+                {
+                    Id = "battle_net",
+                    Name = "Battle.net",
+                    ImageName = "battle_net.png",
+                    Category = "Platform",
+                    Size = "90 MB",
+                    IsInstalled = false,
+                    Description = "Blizzard Games Platform"
+                },
+                new Yafes.Models.GameData
+                {
+                    Id = "ubisoft_connect",
+                    Name = "Ubisoft Connect",
+                    ImageName = "ubisoft_connect.png",
+                    Category = "Platform",
+                    Size = "110 MB",
+                    IsInstalled = false,
+                    Description = "Ubisoft Gaming Platform"
+                },
+                new Yafes.Models.GameData
+                {
+                    Id = "rockstar",
+                    Name = "Rockstar Launcher",
+                    ImageName = "rockstar.png",
+                    Category = "Platform",
+                    Size = "85 MB",
+                    IsInstalled = false,
+                    Description = "Rockstar Games Launcher"
+                },
+                new Yafes.Models.GameData
+                {
+                    Id = "xbox_app",
+                    Name = "Xbox App",
+                    ImageName = "xbox_app.png",
+                    Category = "Platform",
+                    Size = "95 MB",
+                    IsInstalled = false,
+                    Description = "Xbox Gaming Platform"
+                }
+            };
+
+            txtLog.AppendText($"🆘 {fallbackGames.Count} fallback oyun oluşturuldu\n");
+            return fallbackGames;
+        }
+        private Border CreateAdvancedGameCard(Yafes.Models.GameData game)
+        {
+            var gameCard = new Border();
+
+            // XAML'deki GameCardStyle'ı uygula
+            gameCard.SetResourceReference(Border.StyleProperty, "GameCardStyle");
+
+            var stackPanel = new StackPanel
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            // 🖼️ GERÇEK OYUN İKONU YÜKLEME
+            var iconElement = CreateGameIcon(game);
+            stackPanel.Children.Add(iconElement);
+
+            // Oyun adı - SMART FORMATTING
+            var nameText = new TextBlock
+            {
+                Text = FormatGameNameForDisplay(game.Name),
+                FontSize = 10,
+                FontWeight = FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 120,
+                TextAlignment = TextAlignment.Center
+            };
+            nameText.SetResourceReference(TextBlock.StyleProperty, "LambdaTextStyle");
+            stackPanel.Children.Add(nameText);
+
+            // Oyun kategorisi ve boyutu
+            var infoText = new TextBlock
+            {
+                Text = $"{game.Category} • {game.Size ?? "Unknown"}",
+                FontSize = 8,
+                Foreground = new SolidColorBrush(Color.FromRgb(136, 136, 136)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextAlignment = TextAlignment.Center
+            };
+            stackPanel.Children.Add(infoText);
+
+            // Kurulum durumu
+            var statusText = new TextBlock
+            {
+                Text = game.IsInstalled ? "✅ Installed" : "📥 Available",
+                FontSize = 8,
+                Foreground = game.IsInstalled ?
+                    Brushes.LightGreen :
+                    new SolidColorBrush(Color.FromRgb(255, 165, 0)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 2, 0, 0)
+            };
+            stackPanel.Children.Add(statusText);
+
+            gameCard.Child = stackPanel;
+
+            // GELİŞTİRİLMİŞ Tıklama event'i
+            gameCard.MouseLeftButtonDown += (s, e) => {
+                try
+                {
+                    txtLog.AppendText($"🎯 {game.Name} seçildi!\n");
+                    txtLog.AppendText($"📂 Kategori: {game.Category} | Boyut: {game.Size ?? "Unknown"}\n");
+
+                    if (game.IsInstalled)
+                    {
+                        txtLog.AppendText($"✅ Kurulu - Son oynama: {game.LastPlayed}\n");
+                    }
+                    else
+                    {
+                        txtLog.AppendText($"📥 Kurulum başlatılıyor: {game.Name}\n");
+                        // TODO: Gerçek kurulum işlemi eklenebilir
+                    }
+
+                    // Visual feedback
+                    CreateClickAnimation(gameCard);
+                }
+                catch (Exception ex)
+                {
+                    txtLog.AppendText($"❌ Kart tıklama hatası: {ex.Message}\n");
+                }
+            };
+
+            return gameCard;
+        }
+        private void CreateClickAnimation(Border card)
+        {
+            try
+            {
+                var scaleTransform = new ScaleTransform(1, 1);
+                var transformGroup = new TransformGroup();
+                transformGroup.Children.Add(scaleTransform);
+
+                if (card.RenderTransform != null && card.RenderTransform != Transform.Identity)
+                {
+                    transformGroup.Children.Add(card.RenderTransform);
+                }
+
+                card.RenderTransform = transformGroup;
+                card.RenderTransformOrigin = new Point(0.5, 0.5);
+
+                var scaleAnimation = new DoubleAnimation
+                {
+                    From = 1,
+                    To = 0.95,
+                    Duration = TimeSpan.FromMilliseconds(100),
+                    AutoReverse = true,
+                    RepeatBehavior = new RepeatBehavior(1)
+                };
+
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"❌ Click animasyon hatası: {ex.Message}\n");
+            }
+        }
+        private async Task CreateEmergencyGameCards(Border gamesPanel)
+        {
+            try
+            {
+                txtLog.AppendText("🆘 Acil durum kartları oluşturuluyor...\n");
+
+                var fallbackGames = CreateFallbackGamesList();
+                var gamesGrid = CreateFallbackUniformGrid(gamesPanel);
+
+                if (gamesGrid != null)
+                {
+                    foreach (var game in fallbackGames.Take(4)) // Sadece 4 kart
+                    {
+                        var card = CreateAdvancedGameCard(game);
+                        gamesGrid.Children.Add(card);
+                    }
+                    txtLog.AppendText("✅ Acil durum kartları oluşturuldu\n");
+                }
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"❌ Acil durum kartları bile oluşturulamadı: {ex.Message}\n");
+            }
+        }
+        private FrameworkElement CreateGameIcon(Yafes.Models.GameData game)
+        {
+            try
+            {
+                // Gerçek PNG'yi yüklemeyi dene
+                var gameImage = Yafes.Managers.ImageManager.GetGameImage(game.ImageName);
+
+                if (gameImage != null && gameImage != Yafes.Managers.ImageManager.GetDefaultImage())
+                {
+                    // Gerçek image başarıyla yüklendi
+                    var image = new Image
+                    {
+                        Source = gameImage,
+                        Width = 32,
+                        Height = 32,
+                        Stretch = Stretch.Uniform,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Margin = new Thickness(0, 0, 0, 5)
+                    };
+
+                    txtLog.AppendText($"🖼️ {game.Name} için gerçek PNG yüklendi\n");
+                    return image;
+                }
+                else
+                {
+                    // PNG yüklenemedi, emoji icon kullan
+                    var iconText = new TextBlock
+                    {
+                        Text = GetGameIcon(game.Category),
+                        FontSize = 24,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Margin = new Thickness(0, 0, 0, 5)
+                    };
+
+                    txtLog.AppendText($"😊 {game.Name} için emoji icon kullanıldı\n");
+                    return iconText;
+                }
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"❌ Icon oluşturma hatası: {game.Name} - {ex.Message}\n");
+
+                // Hata durumunda basit emoji
+                return new TextBlock
+                {
+                    Text = "🎮",
+                    FontSize = 24,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 5)
+                };
+            }
+        }
+        private string FormatGameNameForDisplay(string gameName)
+        {
+            if (string.IsNullOrEmpty(gameName))
+                return "Unknown Game";
+
+            // Çok uzun isimleri kısalt
+            if (gameName.Length > 20)
+            {
+                return gameName.Substring(0, 17) + "...";
             }
 
+            return gameName;
         }
+
+
+
+        private UniformGrid FindUniformGridMultipleWays(Border gamesPanel)
+        {
+            UniformGrid gamesGrid = null;
+
+            try
+            {
+                // YÖNTEM 1: Name ile bul
+                gamesGrid = FindChild<UniformGrid>(gamesPanel, "gamesGrid");
+                if (gamesGrid != null)
+                {
+                    txtLog.AppendText("✅ UniformGrid bulundu (Name ile)\n");
+                    return gamesGrid;
+                }
+
+                // YÖNTEM 2: Tag ile bul
+                gamesGrid = FindElementByTag<UniformGrid>(gamesPanel, "gamesGrid");
+                if (gamesGrid != null)
+                {
+                    txtLog.AppendText("✅ UniformGrid bulundu (Tag ile)\n");
+                    return gamesGrid;
+                }
+
+                // YÖNTEM 3: Type bazlı arama
+                gamesGrid = FindChild<UniformGrid>(gamesPanel, null);
+                if (gamesGrid != null)
+                {
+                    txtLog.AppendText("✅ UniformGrid bulundu (Type ile)\n");
+                    return gamesGrid;
+                }
+
+                // YÖNTEM 4: Visual Tree taraması
+                gamesGrid = FindUniformGridInVisualTree(gamesPanel);
+                if (gamesGrid != null)
+                {
+                    txtLog.AppendText("✅ UniformGrid bulundu (Visual Tree)\n");
+                    return gamesGrid;
+                }
+
+                txtLog.AppendText("❌ Hiçbir yöntemle UniformGrid bulunamadı\n");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"❌ FindUniformGridMultipleWays hatası: {ex.Message}\n");
+                return null;
+            }
+        }
+        private UniformGrid CreateFallbackUniformGrid(Border gamesPanel)
+        {
+            try
+            {
+                txtLog.AppendText("🆘 Fallback UniformGrid oluşturuluyor...\n");
+
+                // GamesPanel'in content'ini al
+                var content = gamesPanel.Child as Canvas;
+                if (content == null)
+                {
+                    txtLog.AppendText("❌ GamesPanel Canvas'ı bulunamadı\n");
+                    return null;
+                }
+
+                // ScrollViewer bul
+                ScrollViewer scrollViewer = null;
+                foreach (var child in content.Children)
+                {
+                    if (child is ScrollViewer sv)
+                    {
+                        scrollViewer = sv;
+                        break;
+                    }
+                }
+
+                if (scrollViewer == null)
+                {
+                    txtLog.AppendText("❌ ScrollViewer bulunamadı\n");
+                    return null;
+                }
+
+                // Yeni UniformGrid oluştur
+                var newGrid = new UniformGrid
+                {
+                    Columns = 4,
+                    Margin = new Thickness(10)
+                };
+
+                // ScrollViewer'a ata
+                scrollViewer.Content = newGrid;
+                txtLog.AppendText("✅ Yeni UniformGrid oluşturuldu ve atandı\n");
+
+                return newGrid;
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"❌ CreateFallbackUniformGrid hatası: {ex.Message}\n");
+                return null;
+            }
+        }
+
         private UniformGrid FindUniformGridInVisualTree(DependencyObject parent)
         {
             if (parent == null) return null;
