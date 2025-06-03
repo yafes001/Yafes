@@ -7,16 +7,15 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using Yafes.Data;  // ❗ GameData class'ı için
 using Yafes.Managers;
 
 namespace Yafes.GameData
 {
     public partial class GamesPanel : UserControl
     {
-        // Properties - ❗ Tamamen temizlendi
-        private List<GameData> _allGames = new List<GameData>();
-        private List<GameData> _filteredGames = new List<GameData>();
+        // Properties - ❗ MODELS namespace kullanır
+        private List<Yafes.Models.GameData> _allGames = new List<Yafes.Models.GameData>();
+        private List<Yafes.Models.GameData> _filteredGames = new List<Yafes.Models.GameData>();
         private string _currentSearchText = string.Empty;
         private string _currentCategory = "All";
 
@@ -35,10 +34,10 @@ namespace Yafes.GameData
         private const int CARDS_PER_ROW = 3;
         private const double CARD_MARGIN = 10;
 
-        // Events - ❗ Tamamen temizlendi
-        public event Action<GameData>? GameSelected;
-        public event Action<GameData>? InstallRequested;
-        public event Action<GameData>? UninstallRequested;
+        // Events - ❗ MODELS namespace kullanır
+        public event Action<Yafes.Models.GameData>? GameSelected;
+        public event Action<Yafes.Models.GameData>? InstallRequested;
+        public event Action<Yafes.Models.GameData>? UninstallRequested;
 
         // Loading state
         private bool _isLoading = false;
@@ -288,7 +287,7 @@ namespace Yafes.GameData
         {
             try
             {
-                List<GameData> filteredGames;
+                List<Yafes.Models.GameData> filteredGames;
 
                 if (string.IsNullOrWhiteSpace(searchText) && _currentCategory == "All")
                 {
@@ -362,11 +361,11 @@ namespace Yafes.GameData
         }
 
         /// <summary>
-        /// Game card events - ❗ Tamamen temizlendi
+        /// Game card events - ❗ MODELS namespace ile
         /// </summary>
-        private void OnGameSelected(GameData game) => GameSelected?.Invoke(game);
-        private void OnInstallRequested(GameData game) => InstallRequested?.Invoke(game);
-        private void OnUninstallRequested(GameData game) => UninstallRequested?.Invoke(game);
+        private void OnGameSelected(Yafes.Models.GameData game) => GameSelected?.Invoke(game);
+        private void OnInstallRequested(Yafes.Models.GameData game) => InstallRequested?.Invoke(game);
+        private void OnUninstallRequested(Yafes.Models.GameData game) => UninstallRequested?.Invoke(game);
 
         /// <summary>
         /// İstatistikleri günceller

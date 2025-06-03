@@ -6,16 +6,15 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
-// using Yafes.Data; ← KALDIR
 using Yafes.Managers;
 
 namespace Yafes.GameData
 {
     public partial class GameCard : UserControl
     {
-        // Game data property - EXPLICIT QUALIFIER ile
-        private Yafes.Data.GameData? _gameData;
-        public Yafes.Data.GameData? GameData
+        // Game data property - ❗ MODELS namespace kullanır
+        private Yafes.Models.GameData? _gameData;
+        public Yafes.Models.GameData? GameData
         {
             get => _gameData;
             set
@@ -25,10 +24,10 @@ namespace Yafes.GameData
             }
         }
 
-        // Events - EXPLICIT QUALIFIER ile
-        public event Action<Yafes.Data.GameData>? GameSelected;
-        public event Action<Yafes.Data.GameData>? InstallRequested;
-        public event Action<Yafes.Data.GameData>? UninstallRequested;
+        // Events - ❗ MODELS namespace kullanır
+        public event Action<Yafes.Models.GameData>? GameSelected;
+        public event Action<Yafes.Models.GameData>? InstallRequested;
+        public event Action<Yafes.Models.GameData>? UninstallRequested;
 
         // UI Elements (will be created programmatically)
         private Border _mainBorder = null!;
@@ -55,7 +54,7 @@ namespace Yafes.GameData
             SetupEventHandlers();
         }
 
-        public GameCard(Yafes.Data.GameData? gameData) : this()  // EXPLICIT
+        public GameCard(Yafes.Models.GameData? gameData) : this()  // ❗ MODELS namespace
         {
             GameData = gameData;
         }
@@ -234,7 +233,70 @@ namespace Yafes.GameData
             Content = _mainBorder;
         }
 
-        // ... diğer method'lar aynı kalır, sadece GameData referansları explicit olur ...
+        /// <summary>
+        /// Button style oluşturur
+        /// </summary>
+        private Style CreateButtonStyle()
+        {
+            var style = new Style(typeof(Button));
+
+            // Normal template
+            var template = new ControlTemplate(typeof(Button));
+            var factory = new FrameworkElementFactory(typeof(Border));
+            factory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+            factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
+
+            var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
+            contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            contentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+
+            factory.AppendChild(contentPresenter);
+            template.VisualTree = factory;
+
+            style.Setters.Add(new Setter(Button.TemplateProperty, template));
+
+            return style;
+        }
+
+        /// <summary>
+        /// Animation'ları setup eder
+        /// </summary>
+        private void SetupAnimations()
+        {
+            // Scale animation for hover
+            var scaleUpAnimation = new DoubleAnimation
+            {
+                To = 1.03,
+                Duration = TimeSpan.FromMilliseconds(200),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            var scaleDownAnimation = new DoubleAnimation
+            {
+                To = 1.0,
+                Duration = TimeSpan.FromMilliseconds(200),
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            // Overlay animation
+            var overlayShowAnimation = new DoubleAnimation
+            {
+                To = 1.0,
+                Duration = TimeSpan.FromMilliseconds(200)
+            };
+
+            var overlayHideAnimation = new DoubleAnimation
+            {
+                To = 0.0,
+                Duration = TimeSpan.FromMilliseconds(200)
+            };
+
+            // Store animations as resources
+            Resources.Add("ScaleUpAnimation", scaleUpAnimation);
+            Resources.Add("ScaleDownAnimation", scaleDownAnimation);
+            Resources.Add("OverlayShowAnimation", overlayShowAnimation);
+            Resources.Add("OverlayHideAnimation", overlayHideAnimation);
+        }
 
         /// <summary>
         /// Event handler'ları setup eder
@@ -264,8 +326,52 @@ namespace Yafes.GameData
             };
         }
 
-        // Tüm method'lar için aynı pattern - gerekli yerler için sadece örnek veriyorum:
+        /// <summary>
+        /// Mouse enter event - hover effect
+        /// </summary>
+        private void OnMouseEnter(object sender, MouseEventArgs e)
+        {
+            if (_isHovered) return;
+            _isHovered = true;
 
+            // Scale up animation
+            var scaleAnimation = Resources["ScaleUpAnimation"] as DoubleAnimation;
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
+
+            // Overlay show animation
+            _overlayBorder.Background = new SolidColorBrush(Color.FromArgb(50, 255, 255, 255));
+            var overlayAnimation = Resources["OverlayShowAnimation"] as DoubleAnimation;
+            _overlayBorder.BeginAnimation(OpacityProperty, overlayAnimation);
+
+            // Cursor
+            Cursor = Cursors.Hand;
+        }
+
+        /// <summary>
+        /// Mouse leave event - remove hover effect
+        /// </summary>
+        private void OnMouseLeave(object sender, MouseEventArgs e)
+        {
+            if (!_isHovered) return;
+            _isHovered = false;
+
+            // Scale down animation
+            var scaleAnimation = Resources["ScaleDownAnimation"] as DoubleAnimation;
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
+            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
+
+            // Overlay hide animation
+            var overlayAnimation = Resources["OverlayHideAnimation"] as DoubleAnimation;
+            _overlayBorder.BeginAnimation(OpacityProperty, overlayAnimation);
+
+            // Cursor
+            Cursor = Cursors.Arrow;
+        }
+
+        /// <summary>
+        /// Mouse click event - game selection
+        /// </summary>
         private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (_gameData != null)
@@ -274,9 +380,13 @@ namespace Yafes.GameData
             }
         }
 
+        /// <summary>
+        /// Action button click - install/uninstall
+        /// </summary>
         private void OnActionButtonClick(object sender, RoutedEventArgs e)
         {
-            e.Handled = true;
+            e.Handled = true; // Prevent bubbling to parent
+
             if (_gameData != null)
             {
                 if (_gameData.IsInstalled)
@@ -290,23 +400,32 @@ namespace Yafes.GameData
             }
         }
 
+        /// <summary>
+        /// UI'ı game data'ya göre günceller
+        /// </summary>
         private void UpdateUI()
         {
             if (_gameData == null) return;
 
+            // Game image
             if (!string.IsNullOrEmpty(_gameData.ImageName))
             {
                 var image = ImageManager.GetGameImage(_gameData.ImageName);
                 _gameImage.Source = image;
             }
 
+            // Game info
             _gameNameText.Text = _gameData.Name ?? "Unknown Game";
             _gameCategoryText.Text = _gameData.Category ?? "General";
             _gameSizeText.Text = _gameData.Size ?? "Unknown";
 
+            // Install status
             UpdateInstallStatus();
         }
 
+        /// <summary>
+        /// Install status indicator'ını günceller
+        /// </summary>
         private void UpdateInstallStatus()
         {
             if (_gameData == null) return;
@@ -331,6 +450,9 @@ namespace Yafes.GameData
             }
         }
 
+        /// <summary>
+        /// Install status'u manuel güncelleme
+        /// </summary>
         public void SetInstallStatus(bool isInstalled)
         {
             if (_gameData != null)
@@ -340,113 +462,42 @@ namespace Yafes.GameData
             }
         }
 
-        public void SetLoading(bool isLoading)
-        {
-            _actionButton.IsEnabled = !isLoading;
-            _actionButton.Content = isLoading ? "..." : (_gameData?.IsInstalled == true ? "REMOVE" : "INSTALL");
-        }
-
-        // Diğer methodlar aynı...
-        private Style CreateButtonStyle()
-        {
-            var style = new Style(typeof(Button));
-            var template = new ControlTemplate(typeof(Button));
-            var factory = new FrameworkElementFactory(typeof(Border));
-            factory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
-            factory.SetValue(Border.CornerRadiusProperty, new CornerRadius(3));
-
-            var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
-            contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            contentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-
-            factory.AppendChild(contentPresenter);
-            template.VisualTree = factory;
-            style.Setters.Add(new Setter(Button.TemplateProperty, template));
-            return style;
-        }
-
-        private void SetupAnimations()
-        {
-            // Animation setup kodu aynı
-            var scaleUpAnimation = new DoubleAnimation
-            {
-                To = 1.03,
-                Duration = TimeSpan.FromMilliseconds(200),
-                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
-            };
-
-            var scaleDownAnimation = new DoubleAnimation
-            {
-                To = 1.0,
-                Duration = TimeSpan.FromMilliseconds(200),
-                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
-            };
-
-            var overlayShowAnimation = new DoubleAnimation
-            {
-                To = 1.0,
-                Duration = TimeSpan.FromMilliseconds(200)
-            };
-
-            var overlayHideAnimation = new DoubleAnimation
-            {
-                To = 0.0,
-                Duration = TimeSpan.FromMilliseconds(200)
-            };
-
-            Resources.Add("ScaleUpAnimation", scaleUpAnimation);
-            Resources.Add("ScaleDownAnimation", scaleDownAnimation);
-            Resources.Add("OverlayShowAnimation", overlayShowAnimation);
-            Resources.Add("OverlayHideAnimation", overlayHideAnimation);
-        }
-
-        private void OnMouseEnter(object sender, MouseEventArgs e)
-        {
-            if (_isHovered) return;
-            _isHovered = true;
-
-            var scaleAnimation = Resources["ScaleUpAnimation"] as DoubleAnimation;
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
-
-            _overlayBorder.Background = new SolidColorBrush(Color.FromArgb(50, 255, 255, 255));
-            var overlayAnimation = Resources["OverlayShowAnimation"] as DoubleAnimation;
-            _overlayBorder.BeginAnimation(OpacityProperty, overlayAnimation);
-
-            Cursor = Cursors.Hand;
-        }
-
-        private void OnMouseLeave(object sender, MouseEventArgs e)
-        {
-            if (!_isHovered) return;
-            _isHovered = false;
-
-            var scaleAnimation = Resources["ScaleDownAnimation"] as DoubleAnimation;
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
-            _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
-
-            var overlayAnimation = Resources["OverlayHideAnimation"] as DoubleAnimation;
-            _overlayBorder.BeginAnimation(OpacityProperty, overlayAnimation);
-
-            Cursor = Cursors.Arrow;
-        }
-
+        /// <summary>
+        /// Card'ı enable/disable eder
+        /// </summary>
         public void SetEnabled(bool enabled)
         {
             IsEnabled = enabled;
             Opacity = enabled ? 1.0 : 0.6;
         }
 
+        /// <summary>
+        /// Loading state gösterir
+        /// </summary>
+        public void SetLoading(bool isLoading)
+        {
+            _actionButton.IsEnabled = !isLoading;
+            _actionButton.Content = isLoading ? "..." : (_gameData?.IsInstalled == true ? "REMOVE" : "INSTALL");
+        }
+
+        /// <summary>
+        /// Cleanup resources
+        /// </summary>
         private void Cleanup()
         {
+            // Event cleanup
             GameSelected = null;
             InstallRequested = null;
             UninstallRequested = null;
         }
 
+        /// <summary>
+        /// Initialize component - Required for UserControl
+        /// </summary>
         private void InitializeComponent()
         {
             // WPF UserControl için gerekli method
+            // Programmatic UI kullandığımız için boş
         }
     }
 }
