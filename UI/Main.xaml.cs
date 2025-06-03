@@ -26,6 +26,7 @@ namespace Yafes
 {
     public partial class Main : Window
     {
+        private bool isGamesVisible = false;
         private ListBox _lstDrivers;
         private GamesManager gamesManager;
         private SystemInfoManager systemInfoManager;
@@ -600,28 +601,48 @@ namespace Yafes
                     return;
                 }
 
-                // Hangi buton tıklandığını belirle ve işle
+                txtLog.AppendText($"🔘 Buton tıklandı: {clickedButton.Content}\\n");
+
+                // GAMES BUTONU ÖZEL İŞLEMİ
                 if (clickedButton == btnGamesCategory)
                 {
-                    // ✅ DOĞRU - Gerçek GamesPanel'i göster
-                    ShowRealGamesPanel();
-                    SetSelectedCategory("Games");
+                    txtLog.AppendText($"🎮 Games butonu tıklandı - Mevcut durum: {(isGamesVisible ? "AÇIK" : "KAPALI")}\\n");
 
-                    // Eski platform panelini gizle (eğer açıksa)
-                    if (gamesManager != null && gamesManager.IsGamesPanelVisible)
+                    if (!isGamesVisible)
                     {
-                        gamesManager.HideGamesPanel();
+                        // Panel kapalıysa aç
+                        txtLog.AppendText("🔛 Games panel açılıyor...\\n");
+                        ShowRealGamesPanel();
+                        isGamesVisible = true;
+                        SetSelectedCategory("Games");
                     }
+                    else
+                    {
+                        // Panel açıksa kapat
+                        txtLog.AppendText("🔴 Games panel kapatılıyor...\\n");
+                        HideRealGamesPanel();
+                        isGamesVisible = false;
+                        SetSelectedCategory("Programlar"); // Varsayılan kategoriye dön
+                    }
+
+                    // ❌ GamesManager çağrılarını KALDIR - Conflict yaratabiliyor
+                    // ESKİ ZARARLII KOD:
+                    // if (gamesManager != null && gamesManager.IsGamesPanelVisible)
+                    // {
+                    //     gamesManager.HideGamesPanel();
+                    // }
                 }
                 else
                 {
-                    // Başka bir butona basıldı - Games panelini gizle ve normal görünüme dön
-                    HideRealGamesPanel();
+                    // DİĞER BUTONLAR (Programs, Drivers, Tools)
+                    txtLog.AppendText($"📦 Normal kategori butonu: {clickedButton.Content}\\n");
 
-                    // Eski platform Games panelini de gizle
-                    if (gamesManager != null && gamesManager.IsGamesPanelVisible)
+                    // Games açıksa kapat
+                    if (isGamesVisible)
                     {
-                        gamesManager.HideGamesPanel();
+                        txtLog.AppendText("🔴 Games panel normal kategoriye geçiş için kapatılıyor...\\n");
+                        HideRealGamesPanel();
+                        isGamesVisible = false;
                     }
 
                     // Normal kategori geçişleri
@@ -639,43 +660,52 @@ namespace Yafes
                     {
                         currentCategory = "Tools";
                         SetSelectedCategory("Tools");
-                        // Tools kategorisi için liste temizle
                         lstDrivers.Items.Clear();
-                        txtLog.AppendText("🔧 Tools kategorisi seçildi - özellikler yakında eklenecek\\n");
+                        txtLog.AppendText("🔧 Tools kategorisi seçildi\\n");
                     }
                 }
+
+                txtLog.AppendText($"✅ Kategori işlemi tamamlandı\\n");
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ Kategori değişim hatası: {ex.Message}\\n");
-                txtLog.AppendText($"   Detay: {ex.StackTrace}\\n");
+                txtLog.AppendText($"❌ CategoryButton_Click hatası: {ex.Message}\\n");
+                txtLog.AppendText($"   Stack: {ex.StackTrace}\\n");
             }
         }
+
         /// <summary>
         /// ✅ DÜZELTME - Gerçek GamesPanel'i ANA CONTENT AREA'ya yerleştirir
         /// </summary>
-        private async void ShowRealGamesPanel()  // ⬅️ "async void" olarak değiştir
+        private async void ShowRealGamesPanel()
         {
             try
             {
-                txtLog.AppendText("🎮 Oyun kataloğu açılıyor...\\n");
+                txtLog.AppendText("🎮 BAŞLAMA: ShowRealGamesPanel çalışıyor...\\n");
 
-                // 1. XAML'deki hazır Games Panel'i bul
+                // 1. Panel'leri bul
                 var gamesPanel = FindElementByTag<Border>(this, "GamesPanel");
                 var terminalPanel = FindElementByTag<Border>(this, "TerminalPanel");
 
-                if (gamesPanel == null || terminalPanel == null)
+                if (gamesPanel == null)
                 {
-                    txtLog.AppendText("❌ Panel'ler bulunamadı! XAML Tag'lerini kontrol edin\\n");
+                    txtLog.AppendText("❌ HATA: GamesPanel bulunamadı! Tag='GamesPanel' kontrolü\\n");
                     return;
                 }
 
-                txtLog.AppendText("✅ Games Panel bulundu - gösteriliyor...\\n");
+                if (terminalPanel == null)
+                {
+                    txtLog.AppendText("❌ HATA: TerminalPanel bulunamadı! Tag='TerminalPanel' kontrolü\\n");
+                    return;
+                }
 
-                // 2. GAMES PANEL'İ GÖRÜNÜR YAP
+                txtLog.AppendText("✅ Panel'ler bulundu\\n");
+
+                // 2. Games Panel'i görünür yap
                 gamesPanel.Visibility = Visibility.Visible;
+                txtLog.AppendText("✅ GamesPanel.Visibility = Visible\\n");
 
-                // 3. TERMINAL PANELİNİ AŞAĞI KAYDIR (animasyonlu)
+                // 3. Terminal animasyonu
                 var terminalTransform = terminalPanel.RenderTransform as TranslateTransform;
                 if (terminalTransform == null)
                 {
@@ -686,12 +716,12 @@ namespace Yafes
                 var terminalMoveAnimation = new DoubleAnimation
                 {
                     From = 0,
-                    To = 306, // Games panel yüksekliği + margin (290 + 16)
+                    To = 306,
                     Duration = TimeSpan.FromMilliseconds(600),
                     EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
                 };
 
-                // 4. GAMES PANEL ANİMASYONU
+                // 4. Games Panel animasyonu
                 var gamesPanelTransform = gamesPanel.RenderTransform as TranslateTransform;
                 if (gamesPanelTransform == null)
                 {
@@ -702,37 +732,42 @@ namespace Yafes
                 var gamesPanelShowAnimation = new DoubleAnimation
                 {
                     From = -50,
-                    To = 0, // Normal pozisyona getir
+                    To = 0,
                     Duration = TimeSpan.FromMilliseconds(600),
                     EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
                 };
 
-                // 5. OPACITY ANİMASYONU
+                // 5. Opacity animasyonu
                 var gamesPanelOpacityAnimation = new DoubleAnimation
                 {
                     From = 0,
-                    To = 1, // Tam görünür yap
+                    To = 1,
                     Duration = TimeSpan.FromMilliseconds(400),
-                    BeginTime = TimeSpan.FromMilliseconds(200) // 200ms gecikme ile başla
+                    BeginTime = TimeSpan.FromMilliseconds(200)
                 };
 
-                // 6. ANİMASYONLARI BAŞLAT
+                txtLog.AppendText("🎬 Animasyonlar başlatılıyor...\\n");
+
+                // 6. Animasyonları başlat
                 terminalTransform.BeginAnimation(TranslateTransform.YProperty, terminalMoveAnimation);
                 gamesPanelTransform.BeginAnimation(TranslateTransform.YProperty, gamesPanelShowAnimation);
                 gamesPanel.BeginAnimation(UIElement.OpacityProperty, gamesPanelOpacityAnimation);
 
-                // 7. KATEGORI LISTESINi GİZLE (sağ taraf)
+                // 7. Kategori listesini gizle
                 lstDrivers.Visibility = Visibility.Collapsed;
+                txtLog.AppendText("✅ Kategori listesi gizlendi\\n");
 
-                // 8. GERÇEK OYUN VERİLERİNİ YÜKLEYELİM - ŞİMDİ AWAIT ÇALIŞIYOR! ✅
+                // 8. Oyun verilerini yükle
+                txtLog.AppendText("📊 Oyun verileri yükleniyor...\\n");
                 await LoadRealGamesIntoXAMLPanel(gamesPanel);
 
                 currentCategory = "Games";
-                txtLog.AppendText("✅ Games kataloğu hazır - XAML panel'de gösteriliyor!\\n");
+                txtLog.AppendText("✅ BİTİŞ: Games panel tamamen açıldı ve yüklendi!\\n");
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ GamesPanel gösterme hatası: {ex.Message}\\n");
+                txtLog.AppendText($"❌ ShowRealGamesPanel HATA: {ex.Message}\\n");
+                txtLog.AppendText($"   Stack: {ex.StackTrace}\\n");
             }
         }
         /// <summary>
@@ -742,42 +777,136 @@ namespace Yafes
         {
             try
             {
-                // XAML'deki UniformGrid'i bul - FindChild metodunu kullan
+                txtLog.AppendText("🔄 LoadRealGamesIntoXAMLPanel başlatıldı\\n");
+
+                // YÖNTEM 1: Name ile bul
                 var gamesGrid = FindChild<UniformGrid>(gamesPanel, "gamesGrid");
+                txtLog.AppendText($"🔍 Name ile arama: {(gamesGrid != null ? "✅ BULUNDU" : "❌ BULUNAMADI")}\\n");
+
+                // YÖNTEM 2: Tag ile bul (eğer Name çalışmazsa)
                 if (gamesGrid == null)
                 {
-                    txtLog.AppendText("❌ gamesGrid bulunamadı!\\n");
+                    gamesGrid = FindElementByTag<UniformGrid>(gamesPanel, "gamesGrid");
+                    txtLog.AppendText($"🔍 Tag ile arama: {(gamesGrid != null ? "✅ BULUNDU" : "❌ BULUNAMADI")}\\n");
+                }
+
+                // YÖNTEM 3: Type bazlı arama (son çare)
+                if (gamesGrid == null)
+                {
+                    gamesGrid = FindChild<UniformGrid>(gamesPanel, null); // Name null = ilk UniformGrid'i bul
+                    txtLog.AppendText($"🔍 Type bazlı arama: {(gamesGrid != null ? "✅ BULUNDU" : "❌ BULUNAMADI")}\\n");
+                }
+
+                // YÖNTEM 4: Visual Tree taraması (kesin çözüm)
+                if (gamesGrid == null)
+                {
+                    gamesGrid = FindUniformGridInVisualTree(gamesPanel);
+                    txtLog.AppendText($"🔍 Visual Tree tarama: {(gamesGrid != null ? "✅ BULUNDU" : "❌ BULUNAMADI")}\\n");
+                }
+
+                if (gamesGrid == null)
+                {
+                    txtLog.AppendText("❌ Tüm yöntemler başarısız! UniformGrid bulunamadı\\n");
+
+                    // XAML yapısını debug et
+                    txtLog.AppendText("🔍 XAML yapısı debug ediliyor...\\n");
+                    DebugXAMLStructure(gamesPanel, 0);
                     return;
                 }
 
-                txtLog.AppendText("🔄 Gerçek oyun verileri yükleniyor...\\n");
+                txtLog.AppendText($"✅ UniformGrid bulundu! Columns: {gamesGrid.Columns}\\n");
 
-                // GameDataManager'dan oyunları al
+                // Gerçek oyun verilerini yükle
+                txtLog.AppendText("📊 GameDataManager'dan oyunlar alınıyor...\\n");
                 var games = await Yafes.Managers.GameDataManager.GetAllGamesAsync();
 
                 if (games == null || games.Count == 0)
                 {
-                    txtLog.AppendText("⚠️ Oyun verisi bulunamadı - test verileri kullanılıyor\\n");
+                    txtLog.AppendText("⚠️ Oyun verisi bulunamadı - static kartları koru\\n");
                     return;
                 }
 
-                // Mevcut static kartları temizle
-                gamesGrid.Children.Clear();
+                txtLog.AppendText($"✅ {games.Count} oyun bulundu\\n");
 
-                // Gerçek oyun kartlarını ekle - ilk 8 oyunu göster
+                // Mevcut kartları temizle
+                int existingCount = gamesGrid.Children.Count;
+                gamesGrid.Children.Clear();
+                txtLog.AppendText($"🧹 {existingCount} mevcut kart temizlendi\\n");
+
+                // Gerçek oyun kartlarını ekle (ilk 8)
+                int addedCount = 0;
                 foreach (var game in games.Take(8))
                 {
                     var gameCard = CreateGameCard(game);
                     gamesGrid.Children.Add(gameCard);
+                    addedCount++;
                 }
 
-                txtLog.AppendText($"✅ {Math.Min(games.Count, 8)} oyun kartı yüklendi (Toplam: {games.Count})\\n");
+                txtLog.AppendText($"✅ {addedCount} oyun kartı eklendi (Toplam oyun: {games.Count})\\n");
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ Oyun verisi yükleme hatası: {ex.Message}\\n");
+                txtLog.AppendText($"❌ LoadRealGamesIntoXAMLPanel HATA: {ex.Message}\\n");
+                txtLog.AppendText($"   Stack: {ex.StackTrace?.Substring(0, Math.Min(200, ex.StackTrace?.Length ?? 0))}...\\n");
+                //                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                //                                                                      StackTrace null olabilir ama Length değil!
+            }
+
+        }
+        private UniformGrid FindUniformGridInVisualTree(DependencyObject parent)
+        {
+            if (parent == null) return null;
+
+            // Eğer bu element UniformGrid ise
+            if (parent is UniformGrid uniformGrid)
+            {
+                return uniformGrid;
+            }
+
+            // Alt elementlerde ara
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                var result = FindUniformGridInVisualTree(child);
+                if (result != null) return result;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// XAML yapısını debug eder - ne olduğunu anlayalım
+        /// </summary>
+        private void DebugXAMLStructure(DependencyObject parent, int depth)
+        {
+            if (parent == null || depth > 3) return; // Max 3 seviye
+
+            string indent = new string(' ', depth * 2);
+            string elementInfo = "";
+
+            if (parent is FrameworkElement element)
+            {
+                elementInfo = $"{element.GetType().Name}";
+                if (!string.IsNullOrEmpty(element.Name))
+                    elementInfo += $" Name='{element.Name}'";
+                if (element.Tag != null)
+                    elementInfo += $" Tag='{element.Tag}'";
+            }
+            else
+            {
+                elementInfo = parent.GetType().Name;
+            }
+
+            txtLog.AppendText($"🔍 {indent}{elementInfo}\\n");
+
+            // Alt elementleri de göster
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                DebugXAMLStructure(child, depth + 1);
             }
         }
+
         private T FindElementByName<T>(DependencyObject parent, string name) where T : FrameworkElement
         {
             if (parent == null) return null;
@@ -987,14 +1116,20 @@ namespace Yafes
         {
             try
             {
+                txtLog.AppendText("🔴 BAŞLAMA: HideRealGamesPanel çalışıyor...\\n");
+
                 var gamesPanel = FindElementByTag<Border>(this, "GamesPanel");
                 var terminalPanel = FindElementByTag<Border>(this, "TerminalPanel");
 
                 if (gamesPanel == null || terminalPanel == null)
+                {
+                    txtLog.AppendText("❌ Panel'ler bulunamadı, gizleme iptal\\n");
                     return;
+                }
 
                 // Games panel'i gizle
                 gamesPanel.Visibility = Visibility.Collapsed;
+                txtLog.AppendText("✅ GamesPanel.Visibility = Collapsed\\n");
 
                 // Terminal'i normale döndür
                 var terminalTransform = terminalPanel.RenderTransform as TranslateTransform;
@@ -1002,22 +1137,24 @@ namespace Yafes
                 {
                     var terminalMoveAnimation = new DoubleAnimation
                     {
-                        To = 0, // Normal pozisyona getir
+                        To = 0,
                         Duration = TimeSpan.FromMilliseconds(500),
                         EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
                     };
 
                     terminalTransform.BeginAnimation(TranslateTransform.YProperty, terminalMoveAnimation);
+                    txtLog.AppendText("✅ Terminal normal pozisyona döndürüldü\\n");
                 }
 
                 // Kategori listesini geri göster
                 lstDrivers.Visibility = Visibility.Visible;
+                txtLog.AppendText("✅ Kategori listesi geri gösterildi\\n");
 
-                txtLog.AppendText("📦 Normal görünüm geri yüklendi\\n");
+                txtLog.AppendText("✅ BİTİŞ: Games panel tamamen gizlendi\\n");
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ Panel gizleme hatası: {ex.Message}\\n");
+                txtLog.AppendText($"❌ HideRealGamesPanel HATA: {ex.Message}\\n");
             }
         }
         private T FindElementByTag<T>(DependencyObject parent, string tag) where T : FrameworkElement
