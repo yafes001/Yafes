@@ -5,7 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Yafes.GameData;
+using Yafes.Data;  // ❗ GameData class'ı için
+using Yafes.GameData;  // ❗ GamesDatabase class'ı için
 
 namespace Yafes.Managers
 {
@@ -16,17 +17,17 @@ namespace Yafes.Managers
         private const string EMBEDDED_JSON_PATH = "Yafes.Resources.games_data.json";
 
         // Cache
-        private static List<GameData.GameData> _gamesCache;
+        private static List<GameData> _gamesCache;  // ❗ Temizlendi
         private static DateTime _lastCacheUpdate = DateTime.MinValue;
 
         // Events
-        public static event Action<List<GameData.GameData>> GamesDataLoaded;
+        public static event Action<List<GameData>> GamesDataLoaded;  // ❗ Temizlendi
         public static event Action<string> ErrorOccurred;
 
         /// <summary>
         /// Tüm oyun verilerini döndürür (cache'den veya dosyadan)
         /// </summary>
-        public static async Task<List<GameData.GameData>> GetAllGamesAsync()
+        public static async Task<List<GameData>> GetAllGamesAsync()  // ❗ Temizlendi
         {
             try
             {
@@ -51,14 +52,14 @@ namespace Yafes.Managers
             catch (Exception ex)
             {
                 ErrorOccurred?.Invoke($"Oyun verileri yüklenirken hata: {ex.Message}");
-                return new List<GameData.GameData>();
+                return new List<GameData>();  // ❗ Temizlendi
             }
         }
 
         /// <summary>
         /// ID'ye göre oyun döndürür
         /// </summary>
-        public static async Task<GameData.GameData> GetGameByIdAsync(string gameId)
+        public static async Task<GameData> GetGameByIdAsync(string gameId)  // ❗ Temizlendi
         {
             var games = await GetAllGamesAsync();
             return games.FirstOrDefault(g => g.Id.Equals(gameId, StringComparison.OrdinalIgnoreCase));
@@ -67,7 +68,7 @@ namespace Yafes.Managers
         /// <summary>
         /// Kategori'ye göre oyunları filtreler
         /// </summary>
-        public static async Task<List<GameData.GameData>> GetGamesByCategoryAsync(string category)
+        public static async Task<List<GameData>> GetGamesByCategoryAsync(string category)  // ❗ Temizlendi
         {
             var games = await GetAllGamesAsync();
             return games.Where(g => g.Category.Equals(category, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -76,7 +77,7 @@ namespace Yafes.Managers
         /// <summary>
         /// Oyun adına göre arama yapar
         /// </summary>
-        public static async Task<List<GameData.GameData>> SearchGamesAsync(string searchText)
+        public static async Task<List<GameData>> SearchGamesAsync(string searchText)  // ❗ Temizlendi
         {
             if (string.IsNullOrWhiteSpace(searchText))
                 return await GetAllGamesAsync();
@@ -124,7 +125,7 @@ namespace Yafes.Managers
         /// <summary>
         /// Embedded resource'ları tarayarak otomatik oyun listesi oluşturur
         /// </summary>
-        public static async Task<List<GameData.GameData>> GenerateGamesFromEmbeddedResourcesAsync()
+        public static async Task<List<GameData>> GenerateGamesFromEmbeddedResourcesAsync()  // ❗ Temizlendi
         {
             try
             {
@@ -136,7 +137,7 @@ namespace Yafes.Managers
                     .Where(r => r.Contains("GamePosters") && r.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
-                var games = new List<GameData.GameData>();
+                var games = new List<GameData>();  // ❗ Temizlendi
 
                 foreach (var resource in gamePosterResources)
                 {
@@ -144,7 +145,7 @@ namespace Yafes.Managers
                     var gameId = Path.GetFileNameWithoutExtension(fileName);
                     var gameName = FormatGameNameFromFileName(gameId);
 
-                    var game = new GameData.GameData
+                    var game = new GameData  // ❗ Temizlendi
                     {
                         Id = gameId,
                         Name = gameName,
@@ -168,7 +169,7 @@ namespace Yafes.Managers
             catch (Exception ex)
             {
                 ErrorOccurred?.Invoke($"Otomatik oyun listesi oluşturulurken hata: {ex.Message}");
-                return new List<GameData.GameData>();
+                return new List<GameData>();  // ❗ Temizlendi
             }
         }
 
@@ -192,7 +193,7 @@ namespace Yafes.Managers
         /// <summary>
         /// JSON'dan oyun verilerini yükler
         /// </summary>
-        private static async Task<List<GameData.GameData>> LoadGamesFromJsonAsync()
+        private static async Task<List<GameData>> LoadGamesFromJsonAsync()  // ❗ Temizlendi
         {
             // 1. Önce external JSON dosyasını dene
             if (File.Exists(GAMES_JSON_FILE))
@@ -201,7 +202,7 @@ namespace Yafes.Managers
                 {
                     var jsonContent = await File.ReadAllTextAsync(GAMES_JSON_FILE);
                     var gamesDatabase = JsonSerializer.Deserialize<GamesDatabase>(jsonContent);
-                    return gamesDatabase?.Games ?? new List<GameData.GameData>();
+                    return gamesDatabase?.Games ?? new List<GameData>();  // ❗ Temizlendi
                 }
                 catch (Exception ex)
                 {
@@ -219,7 +220,7 @@ namespace Yafes.Managers
                     using var reader = new StreamReader(stream);
                     var jsonContent = await reader.ReadToEndAsync();
                     var gamesDatabase = JsonSerializer.Deserialize<GamesDatabase>(jsonContent);
-                    return gamesDatabase?.Games ?? new List<GameData.GameData>();
+                    return gamesDatabase?.Games ?? new List<GameData>();  // ❗ Temizlendi
                 }
             }
             catch (Exception ex)
@@ -234,7 +235,7 @@ namespace Yafes.Managers
         /// <summary>
         /// Oyun verilerini JSON'a kaydeder
         /// </summary>
-        private static async Task<bool> SaveGamesToJsonAsync(List<GameData.GameData> games)
+        private static async Task<bool> SaveGamesToJsonAsync(List<GameData> games)  // ❗ Temizlendi
         {
             try
             {
@@ -372,7 +373,7 @@ namespace Yafes.Managers
         /// <summary>
         /// En son oynanan oyunları döndürür
         /// </summary>
-        public static async Task<List<GameData.GameData>> GetRecentlyPlayedGamesAsync(int count = 5)
+        public static async Task<List<GameData>> GetRecentlyPlayedGamesAsync(int count = 5)  // ❗ Temizlendi
         {
             var games = await GetAllGamesAsync();
             return games

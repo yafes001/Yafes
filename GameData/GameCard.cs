@@ -6,16 +6,16 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
-using Yafes.GameData;
+using Yafes.Data;  // ❗❗❗ BU MUTLAKA OLMALI
 using Yafes.Managers;
 
-namespace Yafes.GameData
+namespace Yafes.GameData  // ❗ Bu namespace aynı kalır - sadece class referansları değişir
 {
     public partial class GameCard : UserControl
     {
-        // Game data property
-        private Yafes.GameData.GameData? _gameData;
-        public Yafes.GameData.GameData? GameData
+        // Game data property - ❗ Tamamen temizlendi
+        private GameData? _gameData;
+        public GameData? GameData
         {
             get => _gameData;
             set
@@ -25,10 +25,10 @@ namespace Yafes.GameData
             }
         }
 
-        // Events  
-        public event Action<Yafes.GameData.GameData>? GameSelected;
-        public event Action<Yafes.GameData.GameData>? InstallRequested;
-        public event Action<Yafes.GameData.GameData>? UninstallRequested;
+        // Events - ❗ Tamamen temizlendi
+        public event Action<GameData>? GameSelected;
+        public event Action<GameData>? InstallRequested;
+        public event Action<GameData>? UninstallRequested;
 
         // UI Elements (will be created programmatically)
         private Border _mainBorder = null!;
@@ -55,7 +55,7 @@ namespace Yafes.GameData
             SetupEventHandlers();
         }
 
-        public GameCard(Yafes.GameData.GameData? gameData) : this()
+        public GameCard(GameData? gameData) : this()  // ❗ Temizlendi
         {
             GameData = gameData;
         }
@@ -375,9 +375,9 @@ namespace Yafes.GameData
         /// </summary>
         private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (_gameData != null)
+            if (_gameData != null)  // ❗ Temizlendi
             {
-                GameSelected?.Invoke(_gameData);
+                GameSelected?.Invoke(_gameData);  // ❗ Temizlendi
             }
         }
 
@@ -388,15 +388,15 @@ namespace Yafes.GameData
         {
             e.Handled = true; // Prevent bubbling to parent
 
-            if (_gameData != null)
+            if (_gameData != null)  // ❗ Temizlendi
             {
-                if (_gameData.IsInstalled)
+                if (_gameData.IsInstalled)  // ❗ Temizlendi
                 {
-                    UninstallRequested?.Invoke(_gameData);
+                    UninstallRequested?.Invoke(_gameData);  // ❗ Temizlendi
                 }
                 else
                 {
-                    InstallRequested?.Invoke(_gameData);
+                    InstallRequested?.Invoke(_gameData);  // ❗ Temizlendi
                 }
             }
         }
@@ -406,19 +406,19 @@ namespace Yafes.GameData
         /// </summary>
         private void UpdateUI()
         {
-            if (_gameData == null) return;
+            if (_gameData == null) return;  // ❗ Temizlendi
 
             // Game image
-            if (!string.IsNullOrEmpty(_gameData.ImageName))
+            if (!string.IsNullOrEmpty(_gameData.ImageName))  // ❗ Temizlendi
             {
-                var image = ImageManager.GetGameImage(_gameData.ImageName);
+                var image = ImageManager.GetGameImage(_gameData.ImageName);  // ❗ Temizlendi
                 _gameImage.Source = image;
             }
 
             // Game info
-            _gameNameText.Text = _gameData.Name ?? "Unknown Game";
-            _gameCategoryText.Text = _gameData.Category ?? "General";
-            _gameSizeText.Text = _gameData.Size ?? "Unknown";
+            _gameNameText.Text = _gameData.Name ?? "Unknown Game";  // ❗ Temizlendi
+            _gameCategoryText.Text = _gameData.Category ?? "General";  // ❗ Temizlendi
+            _gameSizeText.Text = _gameData.Size ?? "Unknown";  // ❗ Temizlendi
 
             // Install status
             UpdateInstallStatus();
@@ -429,9 +429,9 @@ namespace Yafes.GameData
         /// </summary>
         private void UpdateInstallStatus()
         {
-            if (_gameData == null) return;
+            if (_gameData == null) return;  // ❗ Temizlendi
 
-            if (_gameData.IsInstalled)
+            if (_gameData.IsInstalled)  // ❗ Temizlendi
             {
                 _installStatusBorder.Background = new SolidColorBrush(Color.FromRgb(40, 167, 69));
                 _installStatusText.Text = "INSTALLED";
@@ -456,9 +456,9 @@ namespace Yafes.GameData
         /// </summary>
         public void SetInstallStatus(bool isInstalled)
         {
-            if (_gameData != null)
+            if (_gameData != null)  // ❗ Temizlendi
             {
-                _gameData.IsInstalled = isInstalled;
+                _gameData.IsInstalled = isInstalled;  // ❗ Temizlendi
                 UpdateInstallStatus();
             }
         }
@@ -478,7 +478,7 @@ namespace Yafes.GameData
         public void SetLoading(bool isLoading)
         {
             _actionButton.IsEnabled = !isLoading;
-            _actionButton.Content = isLoading ? "..." : (_gameData?.IsInstalled == true ? "REMOVE" : "INSTALL");
+            _actionButton.Content = isLoading ? "..." : (_gameData?.IsInstalled == true ? "REMOVE" : "INSTALL");  // ❗ Temizlendi
         }
 
         /// <summary>
