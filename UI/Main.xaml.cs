@@ -654,7 +654,7 @@ namespace Yafes
         /// <summary>
         /// ✅ DÜZELTME - Gerçek GamesPanel'i ANA CONTENT AREA'ya yerleştirir
         /// </summary>
-        private async void ShowRealGamesPanel()  // ⬅️ async void eklendi
+        private async void ShowRealGamesPanel()  // ⬅️ "async void" olarak değiştir
         {
             try
             {
@@ -735,7 +735,6 @@ namespace Yafes
                 txtLog.AppendText($"❌ GamesPanel gösterme hatası: {ex.Message}\\n");
             }
         }
-
         /// <summary>
         /// ✅ YENİ - XAML Games Panel'ine gerçek oyun verilerini yükler
         /// </summary>
@@ -743,8 +742,8 @@ namespace Yafes
         {
             try
             {
-                // XAML'deki UniformGrid'i bul - FindChild yerine FindElementByName kullan
-                var gamesGrid = FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
+                // XAML'deki UniformGrid'i bul - FindChild metodunu kullan
+                var gamesGrid = FindChild<UniformGrid>(gamesPanel, "gamesGrid");
                 if (gamesGrid == null)
                 {
                     txtLog.AppendText("❌ gamesGrid bulunamadı!\\n");
@@ -765,14 +764,14 @@ namespace Yafes
                 // Mevcut static kartları temizle
                 gamesGrid.Children.Clear();
 
-                // Gerçek oyun kartlarını ekle
-                foreach (var game in games.Take(8)) // İlk 8 oyunu göster
+                // Gerçek oyun kartlarını ekle - ilk 8 oyunu göster
+                foreach (var game in games.Take(8))
                 {
                     var gameCard = CreateGameCard(game);
                     gamesGrid.Children.Add(gameCard);
                 }
 
-                txtLog.AppendText($"✅ {Math.Min(games.Count, 8)} oyun kartı yüklendi\\n");
+                txtLog.AppendText($"✅ {Math.Min(games.Count, 8)} oyun kartı yüklendi (Toplam: {games.Count})\\n");
             }
             catch (Exception ex)
             {
@@ -802,8 +801,8 @@ namespace Yafes
             if (parent == null) return null;
 
             T foundChild = null;
-
             int childrenCount = VisualTreeHelper.GetChildrenCount(parent);
+
             for (int i = 0; i < childrenCount; i++)
             {
                 var child = VisualTreeHelper.GetChild(parent, i);
@@ -812,7 +811,7 @@ namespace Yafes
                 T childType = child as T;
                 if (childType == null)
                 {
-                    // Recursive arama
+                    // Recursive arama - alt elementlerde ara
                     foundChild = FindChild<T>(child, childName);
                     if (foundChild != null) break;
                 }
@@ -853,7 +852,7 @@ namespace Yafes
                 VerticalAlignment = VerticalAlignment.Center
             };
 
-            // Oyun ikonu (şimdilik emoji, sonra gerçek resim)
+            // Oyun ikonu (kategori bazlı emoji)
             var iconText = new TextBlock
             {
                 Text = GetGameIcon(game.Category),
@@ -868,40 +867,45 @@ namespace Yafes
                 Text = game.Name,
                 FontSize = 10,
                 FontWeight = FontWeights.Bold,
-                HorizontalAlignment = HorizontalAlignment.Center
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap // Uzun isimleri sarmalayacak
             };
             nameText.SetResourceReference(TextBlock.StyleProperty, "LambdaTextStyle");
 
-            // Oyun boyutu
-            var sizeText = new TextBlock
+            // Oyun boyutu veya kurulum durumu
+            var statusText = new TextBlock
             {
-                Text = game.Size ?? "Bilinmiyor",
+                Text = game.IsInstalled ? "✅ Kurulu" : $"📥 {game.Size ?? "Bilinmiyor"}",
                 FontSize = 8,
-                Foreground = new SolidColorBrush(Color.FromRgb(136, 136, 136)),
+                Foreground = game.IsInstalled ?
+                    Brushes.LightGreen :
+                    new SolidColorBrush(Color.FromRgb(136, 136, 136)),
                 HorizontalAlignment = HorizontalAlignment.Center
             };
 
+            // StackPanel'e elementleri ekle
             stackPanel.Children.Add(iconText);
             stackPanel.Children.Add(nameText);
-            stackPanel.Children.Add(sizeText);
+            stackPanel.Children.Add(statusText);
             gameCard.Child = stackPanel;
 
-            // Tıklama event'i ekle
+            // Tıklama event'i ekle - oyun bilgilerini log'a yazsın
             gameCard.MouseLeftButtonDown += (s, e) => {
                 txtLog.AppendText($"🎯 {game.Name} seçildi!\\n");
-                txtLog.AppendText($"📂 Kategori: {game.Category} | Boyut: {game.Size}\\n");
+                txtLog.AppendText($"📂 Kategori: {game.Category} | Boyut: {game.Size ?? "Bilinmiyor"}\\n");
                 if (game.IsInstalled)
                 {
                     txtLog.AppendText($"✅ Kurulu - Son oynama: {game.LastPlayed}\\n");
                 }
                 else
                 {
-                    txtLog.AppendText($"📥 Kurulum gerekiyor - Setup: {game.SetupPath}\\n");
+                    txtLog.AppendText($"📥 Kurulum gerekiyor - Setup: {game.SetupPath ?? "Belirtilmemiş"}\\n");
                 }
             };
 
             return gameCard;
         }
+
 
         /// <summary>
         /// ✅ Ana content grid bulucu yardımcı method
@@ -963,14 +967,16 @@ namespace Yafes
         {
             return category?.ToLower() switch
             {
-                "rpg" => "🗡️",
                 "fps" => "🔫",
+                "rpg" => "🗡️",
                 "racing" => "🏎️",
                 "action" => "⚔️",
                 "adventure" => "🗺️",
                 "strategy" => "♟️",
+                "sports" => "⚽",
+                "simulation" => "🎛️",
                 "sandbox" => "🧱",
-                "simulation" => "🎮",
+                "general" => "🎮",
                 _ => "🎮"
             };
         }
