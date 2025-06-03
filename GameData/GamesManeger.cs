@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using Yafes.GameData;  // ❗ EKLENDİ: GameData class'ı için
 
 namespace Yafes.GameData
 {
@@ -155,8 +156,8 @@ namespace Yafes.GameData
                 _gamesPanel.BeginAnimation(UIElement.OpacityProperty, gamesPanelOpacityAnimation);
 
                 // 7. LOG MESAJI
-               // _mainWindow.AddLog("✅ Games kataloğu açıldı - Oyunları inceleyebilirsiniz!");
-              //  _mainWindow.AddLog("💡 Başka bir kategori seçerek normal görünüme dönebilirsiniz");
+                // _mainWindow.AddLog("✅ Games kataloğu açıldı - Oyunları inceleyebilirsiniz!");
+                //  _mainWindow.AddLog("💡 Başka bir kategori seçerek normal görünüme dönebilirsiniz");
             }
             catch (Exception ex)
             {
