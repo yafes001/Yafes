@@ -26,6 +26,7 @@
     <Compile Include="GameData\GamesDatabase.cs" />
     <Compile Include="GameData\GamesManeger.cs" />
     <Compile Include="GameData\GamesPanel.cs" />
+    <Compile Include="GameData\GamesPanelManeger.cs" />
     <Compile Include="Managers\ImageManager.cs" />
     <Compile Include="Managers\SystemInfoManager.cs" />
     <Compile Include="Managers\WallpaperManager.cs" />
