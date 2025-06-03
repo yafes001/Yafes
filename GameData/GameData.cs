@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Yafes.GameData
+namespace Yafes.Data  // GameData yerine Data kullanın
 {
     public class GameData
     {
