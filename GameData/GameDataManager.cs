@@ -31,6 +31,28 @@ namespace Yafes.Managers
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine("=== GAMEDATA MANAGER DEBUG ===");
+
+                var assembly = Assembly.GetExecutingAssembly();
+                var allResourceNames = assembly.GetManifestResourceNames();
+
+                System.Diagnostics.Debug.WriteLine($"Toplam Embedded Resource: {allResourceNames.Length}");
+                foreach (var resource in allResourceNames)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Resource: {resource}");
+                }
+
+                var pngResources = allResourceNames.Where(r => r.EndsWith(".png")).ToList();
+                System.Diagnostics.Debug.WriteLine($"PNG Resource Count: {pngResources.Count}");
+
+                // ❗ DEBUG KODU SON
+
+                // Cache fresh mı kontrol et (5 dakika cache)
+                if (_gamesCache != null && DateTime.Now.Subtract(_lastCacheUpdate).TotalMinutes < 5)
+                {
+                    System.Diagnostics.Debug.WriteLine("Cache'den veri döndürülüyor");
+                    return _gamesCache;
+                }
                 // Cache fresh mı kontrol et (5 dakika cache)
                 if (_gamesCache != null && DateTime.Now.Subtract(_lastCacheUpdate).TotalMinutes < 5)
                 {
