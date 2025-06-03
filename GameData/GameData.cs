@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Yafes.Data  // ❗ Değiştirildi: GameData -> Data (namespace çakışmasını önlemek için)
+namespace Yafes.Models  // ❗ FARKLI NAMESPACE - Conflict'i tamamen çözer
 {
     public class GameData
     {
