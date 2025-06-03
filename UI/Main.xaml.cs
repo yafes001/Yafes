@@ -16,7 +16,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Yafes;
-using Yafes.Managers;
+using Yafes.GameData;
 
 namespace Yafes
 {

@@ -19,7 +19,17 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Managers\GamesManeger.cs" />
+    <Compile Include="GameData\ConfigManager.cs" />
+    <Compile Include="GameData\GameCard.cs" />
+    <Compile Include="GameData\GameCardManager.cs" />
+    <Compile Include="GameData\GameData.cs" />
+    <Compile Include="GameData\GameDataManager.cs" />
+    <Compile Include="GameData\GameInstaller.cs" />
+    <Compile Include="GameData\GamesDatabase.cs" />
+    <Compile Include="GameData\GamesManeger.cs" />
+    <Compile Include="GameData\GamesPanel.cs" />
+    <Compile Include="GameData\GameStats.cs" />
+    <Compile Include="Managers\ImageManager.cs" />
     <Compile Include="Managers\SystemInfoManager.cs" />
     <Compile Include="Managers\WallpaperManager.cs" />
     <Compile Include="Managers\InstallationQueueManager.cs" />
@@ -70,6 +80,167 @@
     <None Remove="Resources\DiscordSetup.exe" />
     <None Remove="Resources\driver_booster_setup.exe" />
     <None Remove="Resources\EAappInstaller.exe" />
+    <None Remove="Resources\GamePosters\age_of_darkness_final_stand.png" />
+    <None Remove="Resources\GamePosters\age_of_empires_ıv.png" />
+    <None Remove="Resources\GamePosters\age_of_empires_ıı.png" />
+    <None Remove="Resources\GamePosters\age_of_empires_ııı.png" />
+    <None Remove="Resources\GamePosters\age_of_mythology_extended_tale_of_the_dragon_v2_7.png" />
+    <None Remove="Resources\GamePosters\age_of_mythology_retold.png" />
+    <None Remove="Resources\GamePosters\age_of_wonders_4.png" />
+    <None Remove="Resources\GamePosters\alan_wake_2.png" />
+    <None Remove="Resources\GamePosters\alan_wake_remastered.png" />
+    <None Remove="Resources\GamePosters\albatroz.png" />
+    <None Remove="Resources\GamePosters\anno.png" />
+    <None Remove="Resources\GamePosters\aquiet_place_the_road_ahead.png" />
+    <None Remove="Resources\GamePosters\assassin_s_creed_mirage.png" />
+    <None Remove="Resources\GamePosters\assassin_s_creed_odyssey.png" />
+    <None Remove="Resources\GamePosters\assassin_s_creed_ıv_black_flag.png" />
+    <None Remove="Resources\GamePosters\atomic_heart.png" />
+    <None Remove="Resources\GamePosters\avowed.png" />
+    <None Remove="Resources\GamePosters\baldur_s_gate_3.png" />
+    <None Remove="Resources\GamePosters\banishers_ghosts_of_new_eden.png" />
+    <None Remove="Resources\GamePosters\bioshock_ınfinite_the.png" />
+    <None Remove="Resources\GamePosters\black_mesa.png" />
+    <None Remove="Resources\GamePosters\bloodborne.png" />
+    <None Remove="Resources\GamePosters\call_of_duty_ghosts.png" />
+    <None Remove="Resources\GamePosters\call_of_duty_wwıı.png" />
+    <None Remove="Resources\GamePosters\cities_skylines_ıı.png" />
+    <None Remove="Resources\GamePosters\codex_doom_eternal.png" />
+    <None Remove="Resources\GamePosters\command_conquer_red_alert_3_dilogy.png" />
+    <None Remove="Resources\GamePosters\control.png" />
+    <None Remove="Resources\GamePosters\crysis_2_remastered.png" />
+    <None Remove="Resources\GamePosters\crysis_3_remastered.png" />
+    <None Remove="Resources\GamePosters\crysis_remastered.png" />
+    <None Remove="Resources\GamePosters\crısıs_core_ff7_reunıon.png" />
+    <None Remove="Resources\GamePosters\cyberpunk.png" />
+    <None Remove="Resources\GamePosters\c_c_remastered_collection.png" />
+    <None Remove="Resources\GamePosters\dark_pgt.png" />
+    <None Remove="Resources\GamePosters\days_gone.png" />
+    <None Remove="Resources\GamePosters\death_strandıng_dırectors.png" />
+    <None Remove="Resources\GamePosters\deliver_us_mars.png" />
+    <None Remove="Resources\GamePosters\detroit_become_human.png" />
+    <None Remove="Resources\GamePosters\dishonored_collection.png" />
+    <None Remove="Resources\GamePosters\disney_epic_mickey_rebrushed.png" />
+    <None Remove="Resources\GamePosters\dragon_dogma_2.png" />
+    <None Remove="Resources\GamePosters\dying_light_2.png" />
+    <None Remove="Resources\GamePosters\elden_rıng.png" />
+    <None Remove="Resources\GamePosters\enotria_the_last_song.png" />
+    <None Remove="Resources\GamePosters\europa_universalis_4.png" />
+    <None Remove="Resources\GamePosters\farming_simulator_25.png" />
+    <None Remove="Resources\GamePosters\far_cry_3_duology.png" />
+    <None Remove="Resources\GamePosters\far_cry_4_gold.png" />
+    <None Remove="Resources\GamePosters\far_cry_5.png" />
+    <None Remove="Resources\GamePosters\far_cry_primal.png" />
+    <None Remove="Resources\GamePosters\feudal_baron_king_s_land.png" />
+    <None Remove="Resources\GamePosters\final_fantasy_vıı_rebirth.png" />
+    <None Remove="Resources\GamePosters\forza_horizon_5.png" />
+    <None Remove="Resources\GamePosters\foundation.png" />
+    <None Remove="Resources\GamePosters\frostpunk_2.png" />
+    <None Remove="Resources\GamePosters\fıfa_23.png" />
+    <None Remove="Resources\GamePosters\ghost_of_tsushima_dc.png" />
+    <None Remove="Resources\GamePosters\goat_simulator_remastered.png" />
+    <None Remove="Resources\GamePosters\god_of_war.png" />
+    <None Remove="Resources\GamePosters\god_of_war_ragnarok.png" />
+    <None Remove="Resources\GamePosters\gore_doctor.png" />
+    <None Remove="Resources\GamePosters\granblue_fantasy_relink.png" />
+    <None Remove="Resources\GamePosters\grand_theft_auto_v.png" />
+    <None Remove="Resources\GamePosters\gta_trilogy.png" />
+    <None Remove="Resources\GamePosters\gta_vice_city_nextgen.png" />
+    <None Remove="Resources\GamePosters\half_life_2.png" />
+    <None Remove="Resources\GamePosters\half_life_alyx.png" />
+    <None Remove="Resources\GamePosters\half_life_source_quadrilogy.png" />
+    <None Remove="Resources\GamePosters\hellblade_senua_s_sacrifice.png" />
+    <None Remove="Resources\GamePosters\hellblade_senua_s_sacrifice_ıı.png" />
+    <None Remove="Resources\GamePosters\hogwarts_legacy.png" />
+    <None Remove="Resources\GamePosters\horizon_forbidden_west_ce.png" />
+    <None Remove="Resources\GamePosters\house_flipper_2.png" />
+    <None Remove="Resources\GamePosters\kingdom_come_deliverance.png" />
+    <None Remove="Resources\GamePosters\left_4_dead_2.png" />
+    <None Remove="Resources\GamePosters\lies_of_p.png" />
+    <None Remove="Resources\GamePosters\lords_of_the_fallen.png" />
+    <None Remove="Resources\GamePosters\mafia_3.png" />
+    <None Remove="Resources\GamePosters\max_payne_3.png" />
+    <None Remove="Resources\GamePosters\max_payne_duology.png" />
+    <None Remove="Resources\GamePosters\metal_gear_solid_v_tpp.png" />
+    <None Remove="Resources\GamePosters\mirror_s_edge_catalyst.png" />
+    <None Remove="Resources\GamePosters\monster_hunter_rise.png" />
+    <None Remove="Resources\GamePosters\monster_hunter_world_ıceborne.png" />
+    <None Remove="Resources\GamePosters\need_for_speed_carbon_remastered.png" />
+    <None Remove="Resources\GamePosters\need_for_speed_heat.png" />
+    <None Remove="Resources\GamePosters\need_for_speed_most_wanted.png" />
+    <None Remove="Resources\GamePosters\need_for_speed_most_wanted_remastered.png" />
+    <None Remove="Resources\GamePosters\need_for_speed_payback.png" />
+    <None Remove="Resources\GamePosters\nfs_hot_pursuit_remastered.png" />
+    <None Remove="Resources\GamePosters\ninja_gaiden_2_black.png" />
+    <None Remove="Resources\GamePosters\outlast_2.png" />
+    <None Remove="Resources\GamePosters\outpost_ınfinity_siege.png" />
+    <None Remove="Resources\GamePosters\painkiller_pack.png" />
+    <None Remove="Resources\GamePosters\palworld.png" />
+    <None Remove="Resources\GamePosters\prey.png" />
+    <None Remove="Resources\GamePosters\prince_of_persia.png" />
+    <None Remove="Resources\GamePosters\prince_of_persia_the_lost_crown.png" />
+    <None Remove="Resources\GamePosters\ready_or_not.png" />
+    <None Remove="Resources\GamePosters\red_alert_2.png" />
+    <None Remove="Resources\GamePosters\red_dead_redemption_2.png" />
+    <None Remove="Resources\GamePosters\resident_evil_2.png" />
+    <None Remove="Resources\GamePosters\resident_evil_3.png" />
+    <None Remove="Resources\GamePosters\resident_evil_4_hd_project.png" />
+    <None Remove="Resources\GamePosters\resident_evil_7_biohazard.png" />
+    <None Remove="Resources\GamePosters\resident_evil_village.png" />
+    <None Remove="Resources\GamePosters\rise_of_nations_extended.png" />
+    <None Remove="Resources\GamePosters\rise_of_the_tomb_raider.png" />
+    <None Remove="Resources\GamePosters\satisfactory.png" />
+    <None Remove="Resources\GamePosters\sekiro_shadows_die_twice.png" />
+    <None Remove="Resources\GamePosters\serious_sam_2.png" />
+    <None Remove="Resources\GamePosters\serious_sam_4.png" />
+    <None Remove="Resources\GamePosters\serious_sam_hd_the_second_encounter.png" />
+    <None Remove="Resources\GamePosters\serious_sam_siberian_mayhem.png" />
+    <None Remove="Resources\GamePosters\serious_sam_tormental.png" />
+    <None Remove="Resources\GamePosters\shadow_of_the_tomb_raider.png" />
+    <None Remove="Resources\GamePosters\sid_meiers_civilization_vı.png" />
+    <None Remove="Resources\GamePosters\sid_meiers_civilization_vı_anthology_repack_by_chovka.png" />
+    <None Remove="Resources\GamePosters\silent_hill_2_remake.png" />
+    <None Remove="Resources\GamePosters\sniper_elite_3.png" />
+    <None Remove="Resources\GamePosters\sniper_elite_4.png" />
+    <None Remove="Resources\GamePosters\sniper_elite_v2_remastered.png" />
+    <None Remove="Resources\GamePosters\sniper_ghost_warrior_3.png" />
+    <None Remove="Resources\GamePosters\sniper_ghost_warrior_contracts.png" />
+    <None Remove="Resources\GamePosters\sons_of_the_forest.png" />
+    <None Remove="Resources\GamePosters\spider_man_miles_morales.png" />
+    <None Remove="Resources\GamePosters\spider_man_remastered.png" />
+    <None Remove="Resources\GamePosters\starfield.png" />
+    <None Remove="Resources\GamePosters\star_wars_jedi_survivor.png" />
+    <None Remove="Resources\GamePosters\stellaris.png" />
+    <None Remove="Resources\GamePosters\supermarket_security_simulator.png" />
+    <None Remove="Resources\GamePosters\super_mario_bros_wonder.png" />
+    <None Remove="Resources\GamePosters\sıfu.png" />
+    <None Remove="Resources\GamePosters\tekken_7.png" />
+    <None Remove="Resources\GamePosters\tekken_8.png" />
+    <None Remove="Resources\GamePosters\the_callisto_protocol.png" />
+    <None Remove="Resources\GamePosters\the_genesis_order.png" />
+    <None Remove="Resources\GamePosters\the_last_of_us_part_ı.png" />
+    <None Remove="Resources\GamePosters\the_last_of_us_part_ıı_remastered.png" />
+    <None Remove="Resources\GamePosters\the_legend_of_zelda_totk.png" />
+    <None Remove="Resources\GamePosters\the_sims_4.png" />
+    <None Remove="Resources\GamePosters\the_witcher_3_ce.png" />
+    <None Remove="Resources\GamePosters\titanfall_2.png" />
+    <None Remove="Resources\GamePosters\tom_clancy_s_ghost_recon_wildlands.png" />
+    <None Remove="Resources\GamePosters\total_war_three_kingdoms.png" />
+    <None Remove="Resources\GamePosters\total_war_warhammer_ıı.png" />
+    <None Remove="Resources\GamePosters\two_falls.png" />
+    <None Remove="Resources\GamePosters\uncharted_lotc.png" />
+    <None Remove="Resources\GamePosters\unknown_9_awakening.png" />
+    <None Remove="Resources\GamePosters\until_dawn.png" />
+    <None Remove="Resources\GamePosters\victoria_3.png" />
+    <None Remove="Resources\GamePosters\virtua_fighter_5_revo_dod.png" />
+    <None Remove="Resources\GamePosters\v_rising.png" />
+    <None Remove="Resources\GamePosters\wolfenstein_the_old_blood.png" />
+    <None Remove="Resources\GamePosters\world_war_z_aftermath.png" />
+    <None Remove="Resources\GamePosters\x4_foundations.png" />
+    <None Remove="Resources\GamePosters\yog_sothoth_s_yard.png" />
+    <None Remove="Resources\GamePosters\ımmortals_of_aveum.png" />
+    <None Remove="Resources\GamePosters\ındiana_jones_and_the_great_circle.png" />
+    <None Remove="Resources\GamePosters\ınternet_cafe_and_supermarket_simulator.png" />
     <None Remove="Resources\GifIcons\walpaper.jpg" />
     <None Remove="Resources\lic.rar" />
     <None Remove="Resources\lightshot_installer.exe" />
@@ -105,6 +276,489 @@
     <Resource Include="Resources\GifIcons\LoadingF.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
+    <EmbeddedResource Include="Resources\GamePosters\age_of_darkness_final_stand.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\age_of_empires_ıv.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\age_of_empires_ıı.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\age_of_empires_ııı.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\age_of_mythology_extended_tale_of_the_dragon_v2_7.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\age_of_mythology_retold.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\age_of_wonders_4.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\alan_wake_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\alan_wake_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\albatroz.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\anno.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\aquiet_place_the_road_ahead.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\assassin_s_creed_mirage.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\assassin_s_creed_odyssey.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\assassin_s_creed_ıv_black_flag.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\atomic_heart.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\avowed.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\baldur_s_gate_3.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\banishers_ghosts_of_new_eden.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\bioshock_ınfinite_the.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\black_mesa.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\bloodborne.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\call_of_duty_ghosts.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\call_of_duty_wwıı.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\cities_skylines_ıı.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\codex_doom_eternal.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\command_conquer_red_alert_3_dilogy.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\control.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\crysis_2_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\crysis_3_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\crysis_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\crısıs_core_ff7_reunıon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\cyberpunk.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\c_c_remastered_collection.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\dark_pgt.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\days_gone.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\death_strandıng_dırectors.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\deliver_us_mars.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\detroit_become_human.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\dishonored_collection.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\disney_epic_mickey_rebrushed.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\dragon_dogma_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\dying_light_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\elden_rıng.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\enotria_the_last_song.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\europa_universalis_4.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\farming_simulator_25.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\far_cry_3_duology.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\far_cry_4_gold.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\far_cry_5.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\far_cry_primal.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\feudal_baron_king_s_land.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\final_fantasy_vıı_rebirth.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\forza_horizon_5.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\foundation.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\frostpunk_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\fıfa_23.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\ghost_of_tsushima_dc.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\goat_simulator_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\god_of_war.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\god_of_war_ragnarok.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\gore_doctor.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\granblue_fantasy_relink.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\grand_theft_auto_v.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\gta_trilogy.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\gta_vice_city_nextgen.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\half_life_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\half_life_alyx.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\half_life_source_quadrilogy.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\hellblade_senua_s_sacrifice.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\hellblade_senua_s_sacrifice_ıı.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\hogwarts_legacy.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\horizon_forbidden_west_ce.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\house_flipper_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\kingdom_come_deliverance.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\left_4_dead_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\lies_of_p.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\lords_of_the_fallen.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\mafia_3.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\max_payne_3.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\max_payne_duology.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\metal_gear_solid_v_tpp.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\mirror_s_edge_catalyst.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\monster_hunter_rise.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\monster_hunter_world_ıceborne.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\need_for_speed_carbon_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\need_for_speed_heat.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\need_for_speed_most_wanted.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\need_for_speed_most_wanted_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\need_for_speed_payback.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\nfs_hot_pursuit_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\ninja_gaiden_2_black.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\outlast_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\outpost_ınfinity_siege.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\painkiller_pack.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\palworld.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\prey.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\prince_of_persia.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\prince_of_persia_the_lost_crown.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\ready_or_not.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\red_alert_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\red_dead_redemption_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\resident_evil_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\resident_evil_3.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\resident_evil_4_hd_project.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\resident_evil_7_biohazard.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\resident_evil_village.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\rise_of_nations_extended.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\rise_of_the_tomb_raider.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\satisfactory.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sekiro_shadows_die_twice.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\serious_sam_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\serious_sam_4.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\serious_sam_hd_the_second_encounter.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\serious_sam_siberian_mayhem.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\serious_sam_tormental.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\shadow_of_the_tomb_raider.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sid_meiers_civilization_vı.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sid_meiers_civilization_vı_anthology_repack_by_chovka.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\silent_hill_2_remake.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sniper_elite_3.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sniper_elite_4.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sniper_elite_v2_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sniper_ghost_warrior_3.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sniper_ghost_warrior_contracts.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sons_of_the_forest.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\spider_man_miles_morales.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\spider_man_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\starfield.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\star_wars_jedi_survivor.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\stellaris.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\supermarket_security_simulator.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\super_mario_bros_wonder.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\sıfu.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\tekken_7.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\tekken_8.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\the_callisto_protocol.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\the_genesis_order.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\the_last_of_us_part_ı.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\the_last_of_us_part_ıı_remastered.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\the_legend_of_zelda_totk.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\the_sims_4.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\the_witcher_3_ce.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\titanfall_2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\tom_clancy_s_ghost_recon_wildlands.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\total_war_three_kingdoms.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\total_war_warhammer_ıı.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\two_falls.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\uncharted_lotc.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\unknown_9_awakening.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\until_dawn.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\victoria_3.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\virtua_fighter_5_revo_dod.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\v_rising.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\wolfenstein_the_old_blood.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\world_war_z_aftermath.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\x4_foundations.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\yog_sothoth_s_yard.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\ımmortals_of_aveum.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\ındiana_jones_and_the_great_circle.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\GamePosters\ınternet_cafe_and_supermarket_simulator.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Resources\Programs\DiscordSetup.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
