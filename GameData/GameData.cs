@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,16 +6,16 @@ using System.Threading.Tasks;
 
 namespace Yafes.GameData
 {
-    internal class GameData
+    public class GameData
     {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string ImageName { get; set; }
-        public string SetupPath { get; set; }
-        public string Category { get; set; }
-        public string Size { get; set; }
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string ImageName { get; set; } = string.Empty;
+        public string SetupPath { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Size { get; set; } = string.Empty;
         public bool IsInstalled { get; set; }
         public DateTime LastPlayed { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
     }
 }
