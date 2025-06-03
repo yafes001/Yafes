@@ -654,7 +654,7 @@ namespace Yafes
         /// <summary>
         /// ✅ DÜZELTME - Gerçek GamesPanel'i ANA CONTENT AREA'ya yerleştirir
         /// </summary>
-        private void ShowRealGamesPanel()
+        private async void ShowRealGamesPanel()  // ⬅️ async void eklendi
         {
             try
             {
@@ -724,7 +724,7 @@ namespace Yafes
                 // 7. KATEGORI LISTESINi GİZLE (sağ taraf)
                 lstDrivers.Visibility = Visibility.Collapsed;
 
-                // 8. GERÇEK OYUN VERİLERİNİ YÜKLEYELİM
+                // 8. GERÇEK OYUN VERİLERİNİ YÜKLEYELİM - ŞİMDİ AWAIT ÇALIŞIYOR! ✅
                 await LoadRealGamesIntoXAMLPanel(gamesPanel);
 
                 currentCategory = "Games";
@@ -743,8 +743,8 @@ namespace Yafes
         {
             try
             {
-                // XAML'deki UniformGrid'i bul
-                var gamesGrid = FindChild<UniformGrid>(gamesPanel, "gamesGrid");
+                // XAML'deki UniformGrid'i bul - FindChild yerine FindElementByName kullan
+                var gamesGrid = FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
                 if (gamesGrid == null)
                 {
                     txtLog.AppendText("❌ gamesGrid bulunamadı!\\n");
@@ -778,6 +778,63 @@ namespace Yafes
             {
                 txtLog.AppendText($"❌ Oyun verisi yükleme hatası: {ex.Message}\\n");
             }
+        }
+        private T FindElementByName<T>(DependencyObject parent, string name) where T : FrameworkElement
+        {
+            if (parent == null) return null;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+
+                if (child is T element && element.Name == name)
+                {
+                    return element;
+                }
+
+                var result = FindElementByName<T>(child, name);
+                if (result != null) return result;
+            }
+            return null;
+        }
+        public static T FindChild<T>(DependencyObject parent, string childName) where T : DependencyObject
+        {
+            if (parent == null) return null;
+
+            T foundChild = null;
+
+            int childrenCount = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < childrenCount; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+
+                // İlk kontrol: tip eşleşmesi
+                T childType = child as T;
+                if (childType == null)
+                {
+                    // Recursive arama
+                    foundChild = FindChild<T>(child, childName);
+                    if (foundChild != null) break;
+                }
+                else if (!string.IsNullOrEmpty(childName))
+                {
+                    var frameworkElement = child as FrameworkElement;
+                    // Name kontrolü
+                    if (frameworkElement != null && frameworkElement.Name == childName)
+                    {
+                        foundChild = (T)child;
+                        break;
+                    }
+                }
+                else
+                {
+                    // Name belirtilmemişse, ilk bulunan tipte elemanı döndür
+                    foundChild = (T)child;
+                    break;
+                }
+            }
+
+            return foundChild;
         }
 
         /// <summary>
