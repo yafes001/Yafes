@@ -18,6 +18,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using Yafes;
 using Yafes.GameData;
 using Yafes.Managers;
@@ -707,6 +708,245 @@ namespace Yafes
             }
         }
 
+        private async void GameSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                var searchBox = sender as TextBox;
+                if (searchBox == null) return;
+
+                var searchText = searchBox.Text?.Trim() ?? "";
+
+                // Placeholder visibility control
+                var placeholder = FindName("SearchPlaceholder") as TextBlock;
+                if (placeholder != null)
+                {
+                    var fadeAnimation = new DoubleAnimation
+                    {
+                        To = string.IsNullOrEmpty(searchText) ? 0.8 : 0.0,
+                        Duration = TimeSpan.FromMilliseconds(200),
+                        EasingFunction = new QuadraticEase()
+                    };
+                    placeholder.BeginAnimation(UIElement.OpacityProperty, fadeAnimation);
+                }
+
+                // Clear button visibility control
+                var clearButton = FindName("ClearSearchButton") as Button;
+                if (clearButton != null)
+                {
+                    var newVisibility = string.IsNullOrEmpty(searchText) ? Visibility.Collapsed : Visibility.Visible;
+
+                    if (clearButton.Visibility != newVisibility)
+                    {
+                        if (newVisibility == Visibility.Visible)
+                        {
+                            clearButton.Visibility = Visibility.Visible;
+                            var scaleTransform = new ScaleTransform(0, 0);
+                            clearButton.RenderTransform = scaleTransform;
+                            clearButton.RenderTransformOrigin = new Point(0.5, 0.5);
+
+                            var scaleAnimation = new DoubleAnimation
+                            {
+                                From = 0,
+                                To = 1,
+                                Duration = TimeSpan.FromMilliseconds(200),
+                                EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.3 }
+                            };
+
+                            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
+                            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
+                        }
+                        else
+                        {
+                            var scaleTransform = clearButton.RenderTransform as ScaleTransform ?? new ScaleTransform();
+                            var scaleAnimation = new DoubleAnimation
+                            {
+                                To = 0,
+                                Duration = TimeSpan.FromMilliseconds(150),
+                                EasingFunction = new QuadraticEase()
+                            };
+
+                            scaleAnimation.Completed += (s, args) => clearButton.Visibility = Visibility.Collapsed;
+                            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
+                            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
+                        }
+                    }
+                }
+
+                // Search with debounce - 300ms bekle
+                await Task.Delay(300);
+
+                // Eğer metin değişmemişse search yap
+                if (searchBox.Text?.Trim() == searchText && gamesPanelManager != null)
+                {
+                    await gamesPanelManager.PerformSearchAsync(searchText);
+                    txtLog.AppendText($"🔍 Search performed: '{searchText}'\n");
+                }
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"Search error: {ex.Message}\n");
+            }
+        }
+
+        /// <summary>
+        /// Search box focus aldığında çalışır
+        /// </summary>
+        private void GameSearchBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Glow effect animation
+                var searchGlow = FindName("SearchGlow") as DropShadowEffect;
+                if (searchGlow != null)
+                {
+                    var glowAnimation = new DoubleAnimation
+                    {
+                        To = 1.0,
+                        Duration = TimeSpan.FromMilliseconds(300),
+                        EasingFunction = new QuadraticEase()
+                    };
+                    searchGlow.BeginAnimation(DropShadowEffect.OpacityProperty, glowAnimation);
+
+                    var blurAnimation = new DoubleAnimation
+                    {
+                        To = 18,
+                        Duration = TimeSpan.FromMilliseconds(300),
+                        EasingFunction = new QuadraticEase()
+                    };
+                    searchGlow.BeginAnimation(DropShadowEffect.BlurRadiusProperty, blurAnimation);
+                }
+
+                // Hide placeholder immediately
+                var placeholder = FindName("SearchPlaceholder") as TextBlock;
+                if (placeholder != null)
+                {
+                    var fadeAnimation = new DoubleAnimation
+                    {
+                        To = 0.0,
+                        Duration = TimeSpan.FromMilliseconds(150)
+                    };
+                    placeholder.BeginAnimation(UIElement.OpacityProperty, fadeAnimation);
+                }
+
+                txtLog.AppendText("🔍 Search box focused\n");
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"Focus error: {ex.Message}\n");
+            }
+        }
+
+        /// <summary>
+        /// Search box focus kaybettiğinde çalışır
+        /// </summary>
+        private void GameSearchBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var searchBox = sender as TextBox;
+
+                // Reset glow effect
+                var searchGlow = FindName("SearchGlow") as DropShadowEffect;
+                if (searchGlow != null)
+                {
+                    var glowAnimation = new DoubleAnimation
+                    {
+                        To = 0.6,
+                        Duration = TimeSpan.FromMilliseconds(300),
+                        EasingFunction = new QuadraticEase()
+                    };
+                    searchGlow.BeginAnimation(DropShadowEffect.OpacityProperty, glowAnimation);
+
+                    var blurAnimation = new DoubleAnimation
+                    {
+                        To = 12,
+                        Duration = TimeSpan.FromMilliseconds(300),
+                        EasingFunction = new QuadraticEase()
+                    };
+                    searchGlow.BeginAnimation(DropShadowEffect.BlurRadiusProperty, blurAnimation);
+                }
+
+                // Show placeholder if empty
+                if (searchBox != null && string.IsNullOrEmpty(searchBox.Text))
+                {
+                    var placeholder = FindName("SearchPlaceholder") as TextBlock;
+                    if (placeholder != null)
+                    {
+                        var fadeAnimation = new DoubleAnimation
+                        {
+                            To = 0.8,
+                            Duration = TimeSpan.FromMilliseconds(300)
+                        };
+                        placeholder.BeginAnimation(UIElement.OpacityProperty, fadeAnimation);
+                    }
+                }
+
+                txtLog.AppendText("🔍 Search box lost focus\n");
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"Lost focus error: {ex.Message}\n");
+            }
+        }
+
+        /// <summary>
+        /// Clear button'a tıklandığında çalışır
+        /// </summary>
+        private async void ClearSearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var searchBox = FindName("GameSearchBox") as TextBox;
+
+                // Clear animation with shake effect
+                if (searchBox != null)
+                {
+                    // Shake effect before clearing
+                    var shakeTransform = new TranslateTransform();
+                    searchBox.RenderTransform = shakeTransform;
+
+                    var shakeAnimation = new DoubleAnimation
+                    {
+                        From = 0,
+                        To = 3,
+                        Duration = TimeSpan.FromMilliseconds(50),
+                        AutoReverse = true,
+                        RepeatBehavior = new RepeatBehavior(2)
+                    };
+
+                    shakeAnimation.Completed += (s, args) => {
+                        searchBox.Text = "";
+                        searchBox.RenderTransform = null;
+                    };
+
+                    shakeTransform.BeginAnimation(TranslateTransform.XProperty, shakeAnimation);
+                }
+
+                // Show placeholder
+                var placeholder = FindName("SearchPlaceholder") as TextBlock;
+                if (placeholder != null)
+                {
+                    var fadeAnimation = new DoubleAnimation
+                    {
+                        To = 0.8,
+                        Duration = TimeSpan.FromMilliseconds(300)
+                    };
+                    placeholder.BeginAnimation(UIElement.OpacityProperty, fadeAnimation);
+                }
+
+                // Clear search results
+                if (gamesPanelManager != null)
+                {
+                    await gamesPanelManager.PerformSearchAsync("");
+                    txtLog.AppendText("🔍 Search cleared - showing all games\n");
+                }
+            }
+            catch (Exception ex)
+            {
+                txtLog.AppendText($"Clear search error: {ex.Message}\n");
+            }
+        }
 
 
         private void DebugXAMLStructure(DependencyObject parent, int depth)

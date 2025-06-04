@@ -43,6 +43,10 @@ namespace Yafes.Managers
         private readonly Dictionary<string, bool> _imageLoadingStates = new Dictionary<string, bool>();
         private static bool _diskStatusChecked = false;
 
+        // 🔍 v9 - Search sistemi için yeni field'lar
+        private List<Yafes.Models.GameData> _allGames = new List<Yafes.Models.GameData>();
+        private string _currentSearchText = "";
+
         public event Action<string> LogMessage;
 
         public GamesPanelManager(Window parentWindow, TextBox logTextBox)
@@ -335,17 +339,18 @@ namespace Yafes.Managers
                 var gamesGrid = FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
                 if (gamesGrid != null)
                 {
+                    // 🚀 v7 - Daha fazla oyun için daha fazla sütun
                     if (fullWidth && IsProgressBarHidden())
                     {
-                        gamesGrid.Columns = 12;
+                        gamesGrid.Columns = 14; // ⬆️ 12'den 14'e çıkarıldı
                     }
                     else if (fullWidth)
                     {
-                        gamesGrid.Columns = 10;
+                        gamesGrid.Columns = 12; // ⬆️ 10'dan 12'ye çıkarıldı  
                     }
                     else
                     {
-                        gamesGrid.Columns = 4;
+                        gamesGrid.Columns = 6; // ⬆️ 4'ten 6'ya çıkarıldı
                     }
                 }
 
@@ -367,6 +372,7 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"ResizeGamesPanel Hatası: {ex.Message}");
             }
         }
 
@@ -718,7 +724,26 @@ namespace Yafes.Managers
                     return;
                 }
 
-                foreach (var game in games.Take(40))
+                // 🔍 v9 - Oyunları cache'e al (search için)
+                _allGames = games.ToList();
+
+                // Search varsa filtrele
+                List<Yafes.Models.GameData> displayGames;
+                if (string.IsNullOrWhiteSpace(_currentSearchText))
+                {
+                    displayGames = games;
+                }
+                else
+                {
+                    displayGames = games.Where(game =>
+                        game.Name.Contains(_currentSearchText, StringComparison.OrdinalIgnoreCase) ||
+                        game.Category.Contains(_currentSearchText, StringComparison.OrdinalIgnoreCase) ||
+                        (game.ImageName?.Contains(_currentSearchText, StringComparison.OrdinalIgnoreCase) == true)
+                    ).ToList();
+                }
+
+                // 🚀 v8 - TÜM OYUNLARI GÖSTER (Take(40) kaldırıldı)
+                foreach (var game in displayGames) // ✅ Artık tüm oyunlar gösteriliyor
                 {
                     try
                     {
@@ -730,13 +755,18 @@ namespace Yafes.Managers
                     }
                     catch (Exception ex)
                     {
+                        System.Diagnostics.Debug.WriteLine($"GameCard oluşturma hatası: {ex.Message}");
                     }
                 }
 
                 gamesGrid.UpdateLayout();
+
+                // 📊 Debug bilgisi
+                System.Diagnostics.Debug.WriteLine($"📋 Toplam {games.Count} oyun yüklendi, {displayGames.Count} gösteriliyor, {gamesGrid.Children.Count} kart oluşturuldu");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"LoadGamesIntoPanel Hatası: {ex.Message}");
                 var gamesGrid = FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
                 if (gamesGrid != null)
                 {
@@ -745,6 +775,7 @@ namespace Yafes.Managers
             }
         }
 
+        // 🎮 v7 - Repacker etiket sistemi eklendi
         private async Task<Border> CreateGameCard(Yafes.Models.GameData game)
         {
             try
@@ -755,9 +786,11 @@ namespace Yafes.Managers
                     BorderBrush = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
                     BorderThickness = new Thickness(1),
                     Margin = new Thickness(5),
-                    Height = 100,
+                    Height = 120,
                     Cursor = Cursors.Hand,
                     Tag = game,
+                    CornerRadius = new CornerRadius(8),
+                    ClipToBounds = true,
                     Effect = new System.Windows.Media.Effects.DropShadowEffect
                     {
                         Color = Color.FromRgb(255, 165, 0),
@@ -767,24 +800,19 @@ namespace Yafes.Managers
                     }
                 };
 
-                var stackPanel = new StackPanel
-                {
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(5)
-                };
+                // 📐 Grid ana container - Image + Repacker Badge + Text overlay için
+                var mainGrid = new Grid();
 
+                // 🖼️ BACKGROUND IMAGE
                 if (!string.IsNullOrEmpty(game.ImageName))
                 {
                     try
                     {
                         var gameImage = new Image
                         {
-                            Width = 60,
-                            Height = 40,
                             Stretch = Stretch.UniformToFill,
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            Margin = new Thickness(0, 0, 0, 5)
+                            HorizontalAlignment = HorizontalAlignment.Stretch,
+                            VerticalAlignment = VerticalAlignment.Stretch
                         };
 
                         BitmapImage bitmapImage = await Task.Run(() => ImageManager.GetGameImage(game.ImageName));
@@ -792,69 +820,107 @@ namespace Yafes.Managers
                         if (bitmapImage != null && bitmapImage != ImageManager.GetDefaultImage())
                         {
                             gameImage.Source = bitmapImage;
-                            stackPanel.Children.Add(gameImage);
+                            mainGrid.Children.Add(gameImage);
                         }
                         else
                         {
-                            AddCategoryIcon(stackPanel, game.Category);
+                            var iconGrid = CreateFullFrameCategoryIcon(game.Category);
+                            mainGrid.Children.Add(iconGrid);
                         }
                     }
                     catch (Exception ex)
                     {
-                        AddCategoryIcon(stackPanel, game.Category);
+                        var iconGrid = CreateFullFrameCategoryIcon(game.Category);
+                        mainGrid.Children.Add(iconGrid);
                     }
                 }
                 else
                 {
-                    AddCategoryIcon(stackPanel, game.Category);
+                    var iconGrid = CreateFullFrameCategoryIcon(game.Category);
+                    mainGrid.Children.Add(iconGrid);
                 }
 
+                // 🏷️ REPACKER BADGE - Sağ üst köşe
+                var repackerInfo = ExtractRepackerFromFileName(game.ImageName);
+                if (!string.IsNullOrEmpty(repackerInfo.repacker))
+                {
+                    var repackerBadge = CreateRepackerBadge(repackerInfo);
+                    mainGrid.Children.Add(repackerBadge);
+                }
+
+                // 📝 TEXT OVERLAY - Başlangıçta gizli, hover'da çıkacak
+                var textOverlay = new Border
+                {
+                    Background = new LinearGradientBrush(
+                        Color.FromArgb(0, 0, 0, 0),     // Üst: Şeffaf
+                        Color.FromArgb(200, 0, 0, 0),   // Alt: Koyu
+                        new Point(0, 0), new Point(0, 1)),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    Height = 50, // Overlay yüksekliği
+                    Opacity = 0, // Başlangıçta görünmez
+                    Name = "TextOverlay" // Mouse event'lerde bulabilmek için
+                };
+
+                var textStack = new StackPanel
+                {
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(5, 0, 5, 8)
+                };
+
+                // 🎮 GAME NAME
                 var gameNameText = new TextBlock
                 {
                     Text = game.Name,
                     FontSize = 9,
                     FontWeight = FontWeights.Bold,
-                    Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
+                    Foreground = new SolidColorBrush(Colors.White),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
                     TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = 80,
+                    MaxWidth = 90,
                     Effect = new System.Windows.Media.Effects.DropShadowEffect
                     {
-                        Color = Color.FromRgb(255, 165, 0),
-                        BlurRadius = 8,
+                        Color = Colors.Black,
+                        BlurRadius = 4,
                         ShadowDepth = 1,
-                        Opacity = 0.6
+                        Opacity = 0.8
                     }
                 };
 
+                // 📦 SIZE TEXT
                 var gameSizeText = new TextBlock
                 {
                     Text = game.Size,
                     FontSize = 8,
-                    Foreground = new SolidColorBrush(Color.FromRgb(136, 136, 136)),
+                    Foreground = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(0, 2, 0, 0)
+                    TextAlignment = TextAlignment.Center,
+                    Margin = new Thickness(0, 2, 0, 0),
+                    Effect = new System.Windows.Media.Effects.DropShadowEffect
+                    {
+                        Color = Colors.Black,
+                        BlurRadius = 3,
+                        ShadowDepth = 1,
+                        Opacity = 0.8
+                    }
                 };
 
-                var gameCategoryText = new TextBlock
-                {
-                    Text = game.Category,
-                    FontSize = 7,
-                    Foreground = new SolidColorBrush(Color.FromRgb(102, 205, 170)),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    FontStyle = FontStyles.Italic,
-                    Margin = new Thickness(0, 1, 0, 0)
-                };
+                textStack.Children.Add(gameNameText);
+                textStack.Children.Add(gameSizeText);
+                textOverlay.Child = textStack;
 
-                stackPanel.Children.Add(gameNameText);
-                stackPanel.Children.Add(gameSizeText);
-                stackPanel.Children.Add(gameCategoryText);
+                // Transform for animation
+                var overlayTransform = new TranslateTransform { Y = 50 }; // Başlangıçta aşağıda
+                textOverlay.RenderTransform = overlayTransform;
 
-                gameCard.Child = stackPanel;
+                mainGrid.Children.Add(textOverlay);
+                gameCard.Child = mainGrid;
 
-                gameCard.MouseEnter += GameCard_MouseEnter;
-                gameCard.MouseLeave += GameCard_MouseLeave;
+                // 🎯 MOUSE EVENTS - Overlay animasyonları
+                gameCard.MouseEnter += (s, e) => GameCard_MouseEnter_WithOverlay(s, e);
+                gameCard.MouseLeave += (s, e) => GameCard_MouseLeave_WithOverlay(s, e);
                 gameCard.MouseLeftButtonDown += GameCard_Click;
 
                 return gameCard;
@@ -865,17 +931,150 @@ namespace Yafes.Managers
             }
         }
 
-        private void AddCategoryIcon(StackPanel stackPanel, string category)
+        // 🔍 v7 - Dosya adından repacker bilgisini çıkarma
+        private (string repacker, Color badgeColor, string displayName) ExtractRepackerFromFileName(string fileName)
         {
+            if (string.IsNullOrEmpty(fileName))
+                return ("", Colors.Gray, "");
+
+            var upperFileName = fileName.ToUpper();
+
+            // 🎯 Bilinen repacker'ları tanımla
+            var repackers = new Dictionary<string, (Color color, string display)>
+            {
+                // FitGirl - Yeşil
+                { "FG", (Color.FromRgb(46, 204, 113), "FitGirl") },
+                { "FITGIRL", (Color.FromRgb(46, 204, 113), "FitGirl") },
+                
+                // DODI - Mavi  
+                { "DODI", (Color.FromRgb(52, 152, 219), "DODI") },
+                
+                // CODEX - Kırmızı
+                { "CODEX", (Color.FromRgb(231, 76, 60), "CODEX") },
+                
+                // ElAmigos - Turuncu
+                { "ELAMIGOS", (Color.FromRgb(230, 126, 34), "ElAmigos") },
+                { "AMIGOS", (Color.FromRgb(230, 126, 34), "ElAmigos") },
+                
+                // Skidrow - Mor
+                { "SKIDROW", (Color.FromRgb(155, 89, 182), "SKIDROW") },
+                { "SKR", (Color.FromRgb(155, 89, 182), "SKIDROW") },
+                
+                // CPY - Pembe
+                { "CPY", (Color.FromRgb(244, 143, 177), "CPY") },
+                
+                // PLAZA - Sarı
+                { "PLAZA", (Color.FromRgb(241, 196, 15), "PLAZA") },
+                
+                // EMPRESS - Altın
+                { "EMPRESS", (Color.FromRgb(212, 175, 55), "EMPRESS") },
+                
+                // HOODLUM - Gri
+                { "HOODLUM", (Color.FromRgb(149, 165, 166), "HOODLUM") },
+                
+                // TinyRepacks - Cyan
+                { "TINY", (Color.FromRgb(26, 188, 156), "TinyRepacks") },
+                { "TINYREPACKS", (Color.FromRgb(26, 188, 156), "TinyRepacks") },
+                
+                // RELOADED - Koyu Kırmızı
+                { "RLD", (Color.FromRgb(192, 57, 43), "RELOADED") },
+                { "RELOADED", (Color.FromRgb(192, 57, 43), "RELOADED") }
+            };
+
+            // 🔍 Dosya adından repacker ara
+            foreach (var repacker in repackers)
+            {
+                // Çeşitli pattern'leri dene
+                var patterns = new[]
+                {
+                    $"_{repacker.Key}_",     // _FG_
+                    $"-{repacker.Key}-",     // -FG-
+                    $"_{repacker.Key}.",     // _FG.
+                    $"-{repacker.Key}.",     // -FG.
+                    $"[{repacker.Key}]",     // [FG]
+                    $"({repacker.Key})",     // (FG)
+                    $"{repacker.Key}_",      // FG_
+                    $"{repacker.Key}-"       // FG-
+                };
+
+                foreach (var pattern in patterns)
+                {
+                    if (upperFileName.Contains(pattern.ToUpper()))
+                    {
+                        return (repacker.Key, repacker.Value.color, repacker.Value.display);
+                    }
+                }
+            }
+
+            return ("", Colors.Gray, "Unknown");
+        }
+
+        // 🏷️ v7 - Repacker badge oluşturma
+        private Border CreateRepackerBadge((string repacker, Color badgeColor, string displayName) repackerInfo)
+        {
+            var badge = new Border
+            {
+                Background = new SolidColorBrush(repackerInfo.badgeColor),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(6, 2, 6, 2),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 5, 5, 0),
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    BlurRadius = 4,
+                    ShadowDepth = 2,
+                    Opacity = 0.7
+                }
+            };
+
+            var badgeText = new TextBlock
+            {
+                Text = repackerInfo.displayName,
+                FontSize = 7,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Colors.White),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            badge.Child = badgeText;
+            return badge;
+        }
+        private Grid CreateFullFrameCategoryIcon(string category)
+        {
+            var iconGrid = new Grid
+            {
+                Background = new LinearGradientBrush(
+                    Color.FromArgb(80, 0, 0, 0),
+                    Color.FromArgb(120, 0, 0, 0),
+                    new Point(0, 0),
+                    new Point(1, 1)
+                ),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch // 🔧 DÜZELTİLDİ: HorizontalAlignment -> VerticalAlignment
+            };
+
             var categoryIcon = GetCategoryIcon(category);
             var iconText = new TextBlock
             {
                 Text = categoryIcon,
-                FontSize = 24,
+                FontSize = 48, // 🔍 Çok büyük icon
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 5)
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Color.FromRgb(0, 0, 0),
+                    BlurRadius = 15,
+                    ShadowDepth = 3,
+                    Opacity = 0.8
+                }
             };
-            stackPanel.Children.Add(iconText);
+
+            iconGrid.Children.Add(iconText);
+            return iconGrid;
         }
 
         private string GetCategoryIcon(string category)
@@ -986,8 +1185,8 @@ namespace Yafes.Managers
 
                 gameCard.Child = stackPanel;
 
-                gameCard.MouseEnter += GameCard_MouseEnter;
-                gameCard.MouseLeave += GameCard_MouseLeave;
+                gameCard.MouseEnter += GameCard_MouseEnter_WithOverlay;
+                gameCard.MouseLeave += GameCard_MouseLeave_WithOverlay;
                 gameCard.MouseLeftButtonDown += GameCard_Click;
 
                 return gameCard;
@@ -998,16 +1197,19 @@ namespace Yafes.Managers
             }
         }
 
-        private void GameCard_MouseEnter(object sender, MouseEventArgs e)
+        // 🎨 v6 - Overlay ile mouse enter animasyonu
+        private void GameCard_MouseEnter_WithOverlay(object sender, MouseEventArgs e)
         {
             try
             {
                 if (sender is Border card)
                 {
+                    // 🔍 Scale effect
                     var scaleTransform = new ScaleTransform(1.05, 1.05);
                     card.RenderTransform = scaleTransform;
                     card.RenderTransformOrigin = new Point(0.5, 0.5);
 
+                    // 🌟 Border glow effect
                     card.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 215, 0));
                     card.Effect = new System.Windows.Media.Effects.DropShadowEffect
                     {
@@ -1016,6 +1218,43 @@ namespace Yafes.Managers
                         ShadowDepth = 0,
                         Opacity = 0.8
                     };
+
+                    // 📝 TEXT OVERLAY ANIMATION - Yukarı çık
+                    var mainGrid = card.Child as Grid;
+                    if (mainGrid != null)
+                    {
+                        foreach (var child in mainGrid.Children)
+                        {
+                            if (child is Border overlay && overlay.Name == "TextOverlay")
+                            {
+                                var transform = overlay.RenderTransform as TranslateTransform;
+                                if (transform != null)
+                                {
+                                    // 🚀 Opacity animasyonu
+                                    var opacityAnimation = new DoubleAnimation
+                                    {
+                                        From = 0,
+                                        To = 1,
+                                        Duration = TimeSpan.FromMilliseconds(300),
+                                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                                    };
+
+                                    // ⬆️ Yukarı çıkma animasyonu
+                                    var slideAnimation = new DoubleAnimation
+                                    {
+                                        From = 50,
+                                        To = 0,
+                                        Duration = TimeSpan.FromMilliseconds(300),
+                                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                                    };
+
+                                    overlay.BeginAnimation(Border.OpacityProperty, opacityAnimation);
+                                    transform.BeginAnimation(TranslateTransform.YProperty, slideAnimation);
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -1023,15 +1262,18 @@ namespace Yafes.Managers
             }
         }
 
-        private void GameCard_MouseLeave(object sender, MouseEventArgs e)
+        // 🎨 v6 - Overlay ile mouse leave animasyonu
+        private void GameCard_MouseLeave_WithOverlay(object sender, MouseEventArgs e)
         {
             try
             {
                 if (sender is Border card)
                 {
+                    // 🔍 Scale geri al
                     var scaleTransform = new ScaleTransform(1.0, 1.0);
                     card.RenderTransform = scaleTransform;
 
+                    // 🌟 Border normal hale getir
                     card.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 165, 0));
                     card.Effect = new System.Windows.Media.Effects.DropShadowEffect
                     {
@@ -1040,6 +1282,43 @@ namespace Yafes.Managers
                         ShadowDepth = 0,
                         Opacity = 0.4
                     };
+
+                    // 📝 TEXT OVERLAY ANIMATION - Aşağı in
+                    var mainGrid = card.Child as Grid;
+                    if (mainGrid != null)
+                    {
+                        foreach (var child in mainGrid.Children)
+                        {
+                            if (child is Border overlay && overlay.Name == "TextOverlay")
+                            {
+                                var transform = overlay.RenderTransform as TranslateTransform;
+                                if (transform != null)
+                                {
+                                    // 🚀 Opacity animasyonu
+                                    var opacityAnimation = new DoubleAnimation
+                                    {
+                                        From = 1,
+                                        To = 0,
+                                        Duration = TimeSpan.FromMilliseconds(200),
+                                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+                                    };
+
+                                    // ⬇️ Aşağı inme animasyonu
+                                    var slideAnimation = new DoubleAnimation
+                                    {
+                                        From = 0,
+                                        To = 50,
+                                        Duration = TimeSpan.FromMilliseconds(200),
+                                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+                                    };
+
+                                    overlay.BeginAnimation(Border.OpacityProperty, opacityAnimation);
+                                    transform.BeginAnimation(TranslateTransform.YProperty, slideAnimation);
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -1133,6 +1412,299 @@ namespace Yafes.Managers
             }
             return null;
         }
+        // 🔍 GamesPanelManager.cs dosyasına eklenecek PUBLIC metot
+        // Diğer public metotların yanına (örneğin ToggleGamesPanel'den sonra) ekle
+
+        /// <summary>
+        /// Main.xaml.cs'den çağrılabilen public search metodu
+        /// </summary>
+        /// <param name="searchText">Aranacak metin</param>
+
+        // GamesPanelManager.cs dosyasındaki PerformSearchAsync metodunu bu ile değiştir
+
+        /// <summary>
+        /// Tam eşleşme search metodu - Sadece eşleşen oyunları gösterir
+        /// </summary>
+        /// <param name="searchText">Aranacak metin</param>
+        public async Task PerformSearchAsync(string searchText)
+        {
+            try
+            {
+                _currentSearchText = searchText;
+
+                var gamesPanel = FindElementByTag<Border>(_parentWindow, "GamesPanel");
+                if (gamesPanel == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ GamesPanel bulunamadı");
+                    return;
+                }
+
+                var gamesGrid = FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
+                if (gamesGrid == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ gamesGrid bulunamadı");
+                    return;
+                }
+
+                List<Yafes.Models.GameData> filteredGames;
+
+                if (string.IsNullOrWhiteSpace(searchText))
+                {
+                    // Arama boşsa tüm oyunları göster
+                    filteredGames = _allGames;
+                    System.Diagnostics.Debug.WriteLine($"🔍 Tüm oyunlar gösteriliyor: {_allGames.Count}");
+                }
+                else
+                {
+                    // 🎯 TAM EŞLEŞME SEARCH - Sadece eşleşenleri göster
+                    filteredGames = _allGames
+                        .Where(game => IsExactMatch(game, searchText))
+                        .OrderByDescending(game => CalculateExactMatchPriority(game, searchText))
+                        .ThenBy(game => game.Name) // Alfabetik sıralama
+                        .ToList();
+
+                    System.Diagnostics.Debug.WriteLine($"🔍 Search: '{searchText}' - {filteredGames.Count} tam eşleşme bulundu");
+                }
+
+                // Grid'i temizle ve yeni sonuçları ekle
+                gamesGrid.Children.Clear();
+
+                foreach (var game in filteredGames)
+                {
+                    try
+                    {
+                        var gameCard = await CreateGameCard(game);
+                        if (gameCard != null)
+                        {
+                            gamesGrid.Children.Add(gameCard);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"GameCard creation error: {ex.Message}");
+                    }
+                }
+
+                gamesGrid.UpdateLayout();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PerformSearchAsync error: {ex.Message}");
+            }
+        }
+        private string GetExactMatchType(Yafes.Models.GameData game, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return "No Search";
+
+            var search = searchText.Trim().ToLowerInvariant();
+            var gameName = game.Name?.ToLowerInvariant() ?? "";
+            var category = game.Category?.ToLowerInvariant() ?? "";
+
+            if (gameName == search)
+                return "Exact Name Match";
+            if (gameName.StartsWith(search))
+                return "Name Starts With";
+            if (ContainsAllWords(gameName, search))
+                return "All Words Match";
+            if (category == search)
+                return "Category Match";
+            if (gameName.Contains(search))
+                return "Name Contains";
+
+            return "File Match";
+        }
+        /// <summary>
+        /// Tam eşleşme kontrolü - Oyun adı, kategori veya dosya adında tam eşleşme var mı?
+        /// </summary>
+        /// <param name="game">Kontrol edilecek oyun</param>
+        /// <param name="searchText">Arama metni</param>
+        /// <returns>True = Tam eşleşme var, False = Eşleşme yok</returns>
+        private bool IsExactMatch(Yafes.Models.GameData game, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return false;
+
+            var search = searchText.Trim().ToLowerInvariant();
+            var gameName = game.Name?.ToLowerInvariant() ?? "";
+            var category = game.Category?.ToLowerInvariant() ?? "";
+            var imageName = game.ImageName?.ToLowerInvariant() ?? "";
+
+            // 🎯 TAM EŞLEŞME KRİTERLERİ:
+
+            // 1. Oyun adı tam eşleşme
+            if (gameName == search)
+                return true;
+
+            // 2. Oyun adı kelime kelime eşleşme (büyük/küçük harf duyarsız)
+            if (gameName.Contains(search))
+                return true;
+
+            // 3. Kategori tam eşleşme
+            if (category == search)
+                return true;
+
+            // 4. Oyun adında arama kelimeleri bulunuyor mu? (tüm kelimeler olmalı)
+            if (ContainsAllWords(gameName, search))
+                return true;
+
+            // 5. Dosya adında arama metni var mı? (repacker, format bilgisi için)
+            if (imageName.Contains(search))
+                return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Tüm kelimelerin oyun adında bulunup bulunmadığını kontrol eder
+        /// </summary>
+        /// <param name="gameName">Oyun adı</param>
+        /// <param name="searchText">Arama metni</param>
+        /// <returns>True = Tüm kelimeler bulundu</returns>
+        private bool ContainsAllWords(string gameName, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText) || string.IsNullOrWhiteSpace(gameName))
+                return false;
+
+            // Arama metnini kelimelere ayır
+            var searchWords = searchText.Split(new char[] { ' ', '-', '_', '.' },
+                StringSplitOptions.RemoveEmptyEntries);
+
+            // Her arama kelimesinin oyun adında bulunması gerekir
+            foreach (var word in searchWords)
+            {
+                if (!gameName.Contains(word.ToLowerInvariant()))
+                    return false;
+            }
+
+            return searchWords.Length > 0; // En az bir kelime olmalı
+        }
+
+        /// <summary>
+        /// Tam eşleşme öncelik puanı hesaplar
+        /// </summary>
+        /// <param name="game">Oyun verisi</param>
+        /// <param name="searchText">Arama metni</param>
+        /// <returns>Öncelik puanı (yüksek = önce gösterilir)</returns>
+        private int CalculateExactMatchPriority(Yafes.Models.GameData game, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return 0;
+
+            var search = searchText.Trim().ToLowerInvariant();
+            var gameName = game.Name?.ToLowerInvariant() ?? "";
+            var category = game.Category?.ToLowerInvariant() ?? "";
+
+            // 🥇 Oyun adı tam eşleşme (En yüksek öncelik)
+            if (gameName == search)
+                return 1000;
+
+            // 🥈 Oyun adı başlangıç eşleşmesi
+            if (gameName.StartsWith(search))
+                return 800;
+
+            // 🥉 Tüm kelimeler oyun adında var
+            if (ContainsAllWords(gameName, search))
+                return 600;
+
+            // 🏅 Kategori tam eşleşme
+            if (category == search)
+                return 400;
+
+            // 🏅 Oyun adında arama metni geçiyor
+            if (gameName.Contains(search))
+                return 200;
+
+            // 🏅 Dosya adında eşleşme
+            return 100;
+        }
+
+        private int CalculateSearchPriority(Yafes.Models.GameData game, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return 0;
+
+            var search = searchText.ToLowerInvariant();
+            var gameName = game.Name?.ToLowerInvariant() ?? "";
+            var category = game.Category?.ToLowerInvariant() ?? "";
+            var imageName = game.ImageName?.ToLowerInvariant() ?? "";
+
+            int priority = 0;
+
+            // 🥇 TAM EŞLEŞME (En yüksek öncelik)
+            if (gameName == search)
+                return 1000; // Mükemmel eşleşme
+
+            // 🥈 BAŞLANGIC EŞLEŞMESİ (Çok yüksek öncelik)
+            if (gameName.StartsWith(search))
+                priority += 500;
+
+            // 🥉 İÇERİK EŞLEŞMESİ (Yüksek öncelik)
+            if (gameName.Contains(search))
+                priority += 300;
+
+            // 🏅 KATEGORİ EŞLEŞMESİ (Orta öncelik)
+            if (category.Contains(search))
+                priority += 200;
+
+            // 🏅 DOSYA ADI EŞLEŞMESİ (Düşük öncelik)
+            if (imageName.Contains(search))
+                priority += 100;
+
+            // 🎯 BONUS PUANLAR
+
+            // Search kelimesi oyun adının büyük kısmını içeriyorsa bonus
+            if (search.Length >= 3 && gameName.Length > 0)
+            {
+                double similarity = (double)search.Length / gameName.Length;
+                if (similarity > 0.5) // Arama %50'den fazla benzer
+                    priority += (int)(similarity * 50);
+            }
+
+            // Birden fazla kelime eşleşiyorsa bonus
+            var searchWords = search.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var nameWords = gameName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            int wordMatches = 0;
+            foreach (var searchWord in searchWords)
+            {
+                if (nameWords.Any(nameWord => nameWord.Contains(searchWord)))
+                    wordMatches++;
+            }
+
+            if (wordMatches > 1)
+                priority += wordMatches * 25; // Her ek kelime eşleşmesi için bonus
+
+            return priority;
+        }
+
+        /// <summary>
+        /// Eşleşme tipini döndürür (debug amaçlı)
+        /// </summary>
+        private string GetMatchType(Yafes.Models.GameData game, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return "No Match";
+
+            var search = searchText.ToLowerInvariant();
+            var gameName = game.Name?.ToLowerInvariant() ?? "";
+            var category = game.Category?.ToLowerInvariant() ?? "";
+            var imageName = game.ImageName?.ToLowerInvariant() ?? "";
+
+            if (gameName == search)
+                return "Exact Match";
+            if (gameName.StartsWith(search))
+                return "Starts With";
+            if (gameName.Contains(search))
+                return "Name Contains";
+            if (category.Contains(search))
+                return "Category Match";
+            if (imageName.Contains(search))
+                return "File Match";
+
+            return "No Match";
+        }
+
 
         public void ForceReset()
         {
