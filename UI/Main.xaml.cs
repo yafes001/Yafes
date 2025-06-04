@@ -578,6 +578,13 @@ namespace Yafes
 
         // CategoryButton_Click metodunu bu geliştirilmiş versiyonla değiştirin
         // MEVCUT KODLAR KORUNDU + Slide Animation eklendi
+        // ✅ MEVCUT CategoryButton_Click metodunu güncellemeniz yeterli
+        // Zaten GamesPanelManager entegrasyonu mevcut - sadece eksik olanları ekleyin
+
+        // Main.xaml.cs dosyasındaki CategoryButton_Click metoduna bu satırları ekleyin:
+
+        // ✅ Main.xaml.cs dosyasındaki CategoryButton_Click metodunu bu şekilde güncelleyin:
+
         private async void CategoryButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -594,7 +601,7 @@ namespace Yafes
 
                 txtLog.AppendText($"🔘 Buton tıklandı: {clickedButton.Content}\n");
 
-                // ✅ ENHANCED: GAMES BUTONU - GamesPanelManager'a delege et (slide animation ile)
+                // ✅ GAMES BUTONU - GamesPanelManager'a delege et (slide animation ile)
                 if (clickedButton == btnGamesCategory)
                 {
                     if (gamesPanelManager != null)
@@ -630,16 +637,17 @@ namespace Yafes
                 }
                 else
                 {
-                    // MEVCUT: DİĞER BUTONLAR (Programs, Drivers, Tools) - ESKİ MANTIK KORUNDU
+                    // ✅ DİĞER BUTONLAR (Programs, Drivers, Tools)
                     txtLog.AppendText($"📦 Normal kategori butonu: {clickedButton.Content}\n");
 
-                    // ✅ ENHANCED: Games açıksa kapat - GamesPanelManager üzerinden (slide animation ile)
+                    // ✅ ENHANCED: Games açıksa kapat - ExitGamesMode kullan
                     if (isGamesVisible && gamesPanelManager != null)
                     {
                         txtLog.AppendText("🔴 Games panel normal kategoriye geçiş için kapatılıyor...\n");
                         txtLog.AppendText("➡️ Sol sidebar geri getiriliyor...\n");
 
-                        bool closeSuccess = await gamesPanelManager.ToggleGamesPanel(); // Kapatır ve sidebar'ı geri getirir
+                        // ✅ YENİ: ExitGamesMode kullan (Terminal + Progress bar + Sidebar geri gelir)
+                        bool closeSuccess = await gamesPanelManager.ExitGamesMode();
 
                         if (closeSuccess)
                         {

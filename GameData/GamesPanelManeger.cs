@@ -53,7 +53,6 @@ namespace Yafes.Managers
 
         /// <summary>
         /// ✅ YENİ: Sol sidebar için element referanslarını başlatır
-<<<<<<< HEAD
         /// </summary>
         private void InitializeSidebarElements()
         {
@@ -247,10 +246,10 @@ namespace Yafes.Managers
                 {
                     LogMessage?.Invoke("🔴 Games panel kapatılıyor...");
 
-                    // ✅ YENİ: Önce sol sidebar'ı geri getir
+                    // ✅ DEĞİŞTİRİLDİ: Önce sol sidebar'ı geri getir
                     await SlideSidebarIn();
 
-                    bool success = HideGamesPanel();
+                    bool success = await HideGamesPanel();
                     if (success)
                     {
                         _isGamesVisible = false;
@@ -344,6 +343,7 @@ namespace Yafes.Managers
 
         /// <summary>
         /// ENHANCED: Games panelini gösterir + Tam genişlik modunu aktifleştirir
+        /// ✅ YENİ: Terminal tamamen kayarak kaybolur + Progress bar sağa kayar
         /// </summary>
         private async Task<bool> ShowGamesPanel()
         {
@@ -379,8 +379,14 @@ namespace Yafes.Managers
                 gamesPanel.Visibility = Visibility.Visible;
                 LogMessage?.Invoke("✅ GamesPanel.Visibility = Visible");
 
-                // 5. Animasyonları başlat
-                await StartShowAnimations(gamesPanel, terminalPanel);
+                // 4. ✅ DEĞİŞTİRİLDİ: Terminal'i tamamen kayarak kaybet
+                await SlideTerminalOutCompletely(terminalPanel);
+
+                // 4.5. ✅ YENİ: Progress bar'ı sağa kayarak kaybet
+                await SlideProgressBarOut();
+
+                // 5. Games Panel animasyonu
+                await StartGamesOnlyAnimation(gamesPanel);
 
                 // 6. Kategori listesini gizle
                 var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
@@ -394,7 +400,7 @@ namespace Yafes.Managers
                 LogMessage?.Invoke("📊 Oyun verileri tam genişlik modunda yükleniyor...");
                 await LoadGamesIntoPanel(gamesPanel);
 
-                LogMessage?.Invoke("✅ BİTİŞ: Games panel tamamen açıldı ve manuel test uygulandı!");
+                LogMessage?.Invoke("✅ BİTİŞ: Games panel tamamen açıldı - Terminal ve Progress bar kayboldu!");
                 return true;
             }
             catch (Exception ex)
@@ -405,9 +411,10 @@ namespace Yafes.Managers
         }
 
         /// <summary>
-        /// ENHANCED: Games panelini gizler + LOG terminal'i geri gösterir
+        /// ENHANCED: Games panelini gizler + Terminal ve Progress bar'ı geri getirir
+        /// Sadece Games butonuna tekrar basıldığında kullanılır
         /// </summary>
-        private bool HideGamesPanel()
+        private async Task<bool> HideGamesPanel()
         {
             try
             {
@@ -429,9 +436,11 @@ namespace Yafes.Managers
                 gamesPanel.Visibility = Visibility.Collapsed;
                 LogMessage?.Invoke("✅ GamesPanel.Visibility = Collapsed");
 
-                // ✅ YENİ: LOG Terminal'i geri göster (kayma animasyonu yok)
-                terminalPanel.Visibility = Visibility.Visible;
-                LogMessage?.Invoke("✅ LOG Terminal geri gösterildi");
+                // ✅ DEĞİŞTİRİLDİ: Terminal'i tamamen yukarıdan geri getir
+                await SlideTerminalInCompletely(terminalPanel);
+
+                // ✅ YENİ: Progress bar'ı soldan geri getir
+                await SlideProgressBarIn();
 
                 // Kategori listesini geri göster
                 var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
@@ -441,7 +450,7 @@ namespace Yafes.Managers
                     LogMessage?.Invoke("✅ Kategori listesi geri gösterildi");
                 }
 
-                LogMessage?.Invoke("✅ BİTİŞ: Games panel gizlendi, LOG terminal geri geldi");
+                LogMessage?.Invoke("✅ BİTİŞ: Games panel gizlendi, Terminal ve Progress bar geri geldi!");
                 return true;
             }
             catch (Exception ex)
@@ -452,8 +461,321 @@ namespace Yafes.Managers
         }
 
         /// <summary>
-        /// ✅ YENİ: Sadece Games Panel animasyonu (Terminal yok)
+        /// ✅ YENİ: Terminal'i tamamen aşağıya kaydırarak kaybet
         /// </summary>
+        private async Task SlideTerminalOutCompletely(Border terminalPanel)
+        {
+            try
+            {
+                LogMessage?.Invoke("⬇️ Terminal tamamen kayarak kaybolacak...");
+
+                // Terminal transform'unu al veya oluştur
+                var terminalTransform = terminalPanel.RenderTransform as TranslateTransform;
+                if (terminalTransform == null)
+                {
+                    terminalTransform = new TranslateTransform();
+                    terminalPanel.RenderTransform = terminalTransform;
+                }
+
+                // Terminal'i tamamen aşağıya kaydır (yüksekliğinden fazla)
+                var slideDownAnimation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 650, // Terminal yüksekliğinden fazla (596 + margin)
+                    Duration = TimeSpan.FromMilliseconds(800), // Biraz daha uzun animasyon
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
+                };
+
+                // Opacity ile de kaybet
+                var fadeOutAnimation = new DoubleAnimation
+                {
+                    From = 1.0,
+                    To = 0.0,
+                    Duration = TimeSpan.FromMilliseconds(600),
+                    BeginTime = TimeSpan.FromMilliseconds(200) // 200ms sonra fade başlasın
+                };
+
+                LogMessage?.Invoke("🎬 Terminal tamamen kayma animasyonu başlatılıyor...");
+
+                // Animasyon tamamlanma kontrolü
+                var tcs = new TaskCompletionSource<bool>();
+                slideDownAnimation.Completed += (s, e) => {
+                    // Animasyon bitince tamamen gizle
+                    terminalPanel.Visibility = Visibility.Collapsed;
+                    LogMessage?.Invoke("✅ Terminal tamamen kayboldu!");
+                    tcs.SetResult(true);
+                };
+
+                // Her iki animasyonu da başlat
+                terminalTransform.BeginAnimation(TranslateTransform.YProperty, slideDownAnimation);
+                terminalPanel.BeginAnimation(UIElement.OpacityProperty, fadeOutAnimation);
+
+                // Animasyon tamamlanana kadar bekle
+                await tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ SlideTerminalOutCompletely hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// ✅ YENİ: Progress bar'ı sola kaydırarak kaybet
+        /// ENHANCED: Sol sidebar mantığını kullan
+        /// </summary>
+        private async Task SlideProgressBarOut()
+        {
+            try
+            {
+                LogMessage?.Invoke("➡️ Progress bar sağa kayarak kaybolacak...");
+
+                // ✅ ANAHTAR: Main.xaml'de progress bar container'ının adını bul
+                // Energy Bar - Canvas.Left="266" Canvas.Top="680" olan Border
+                Border progressBarContainer = null;
+
+                // 1. Energy Bar container'ını Canvas pozisyonuna göre bul
+                progressBarContainer = FindProgressBarByPosition();
+                LogMessage?.Invoke($"🔍 Progress bar pozisyon ile arama: {progressBarContainer != null}");
+
+                // 2. ProgressBar element'ini bul ve parent'ını al
+                if (progressBarContainer == null)
+                {
+                    var progressBarElement = FindElementByName<ProgressBar>(_parentWindow, "progressBar");
+                    if (progressBarElement != null)
+                    {
+                        // Parent Border'ı bul
+                        var parent = VisualTreeHelper.GetParent(progressBarElement);
+                        while (parent != null && !(parent is Border))
+                        {
+                            parent = VisualTreeHelper.GetParent(parent);
+                        }
+                        progressBarContainer = parent as Border;
+                        LogMessage?.Invoke($"🔍 ProgressBar parent bulma: {progressBarContainer != null}");
+                    }
+                }
+
+                if (progressBarContainer == null)
+                {
+                    LogMessage?.Invoke("❌ Progress bar container bulunamadı - animasyon atlandı");
+                    return;
+                }
+
+                // ✅ SOL SIDEBAR GİBİ: Transform oluştur veya al
+                var progressTransform = progressBarContainer.RenderTransform as TranslateTransform;
+                if (progressTransform == null)
+                {
+                    progressTransform = new TranslateTransform();
+                    progressBarContainer.RenderTransform = progressTransform;
+                    LogMessage?.Invoke("🔧 Progress bar transform oluşturuldu");
+                }
+
+                // Sağa kayma animasyonu
+                var slideRightAnimation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 900, // Sağa 900px kayacak (ekran dışına)
+                    Duration = TimeSpan.FromMilliseconds(700),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
+                };
+
+                // Opacity ile kaybet
+                var fadeOutAnimation = new DoubleAnimation
+                {
+                    From = 1.0,
+                    To = 0.0,
+                    Duration = TimeSpan.FromMilliseconds(500),
+                    BeginTime = TimeSpan.FromMilliseconds(150)
+                };
+
+                LogMessage?.Invoke("🎬 Progress bar sağa kayma animasyonu başlatılıyor...");
+
+                // Animasyon tamamlanma kontrolü
+                var tcs = new TaskCompletionSource<bool>();
+                slideRightAnimation.Completed += (s, e) => {
+                    progressBarContainer.Visibility = Visibility.Collapsed;
+                    LogMessage?.Invoke("✅ Progress bar sağa kayarak kayboldu!");
+                    tcs.SetResult(true);
+                };
+
+                // Animasyonları başlat
+                progressTransform.BeginAnimation(TranslateTransform.XProperty, slideRightAnimation);
+                progressBarContainer.BeginAnimation(UIElement.OpacityProperty, fadeOutAnimation);
+
+                await tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ SlideProgressBarOut hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// ✅ YENİ: Progress bar'ı soldan geri getir
+        /// ENHANCED: Sol sidebar mantığını kullan
+        /// </summary>
+        private async Task SlideProgressBarIn()
+        {
+            try
+            {
+                LogMessage?.Invoke("⬅️ Progress bar soldan geri geliyor...");
+
+                // ✅ ANAHTAR: Sol sidebar mantığını kullan
+                Border progressBarContainer = null;
+
+                // 1. Energy Bar container'ını Canvas pozisyonuna göre bul
+                progressBarContainer = FindProgressBarByPosition();
+                LogMessage?.Invoke($"🔍 Progress bar pozisyon ile arama: {progressBarContainer != null}");
+
+                // 2. ProgressBar element'ini bul ve parent'ını al
+                if (progressBarContainer == null)
+                {
+                    var progressBarElement = FindElementByName<ProgressBar>(_parentWindow, "progressBar");
+                    if (progressBarElement != null)
+                    {
+                        // Sol sidebar gibi parent Border'ı bul
+                        var parent = VisualTreeHelper.GetParent(progressBarElement);
+                        while (parent != null && !(parent is Border))
+                        {
+                            parent = VisualTreeHelper.GetParent(parent);
+                        }
+                        progressBarContainer = parent as Border;
+                        LogMessage?.Invoke($"🔍 ProgressBar parent bulma: {progressBarContainer != null}");
+                    }
+                    else
+                    {
+                        LogMessage?.Invoke("❌ ProgressBar element bulunamadı");
+                    }
+                }
+
+                if (progressBarContainer == null)
+                {
+                    LogMessage?.Invoke("❌ Progress bar container hiçbir yöntemle bulunamadı");
+                    return;
+                }
+
+                // Önce görünür yap
+                progressBarContainer.Visibility = Visibility.Visible;
+                progressBarContainer.Opacity = 1.0;
+
+                // ✅ SOL SIDEBAR GİBİ: Transform al veya oluştur
+                var progressTransform = progressBarContainer.RenderTransform as TranslateTransform;
+                if (progressTransform == null)
+                {
+                    progressTransform = new TranslateTransform();
+                    progressBarContainer.RenderTransform = progressTransform;
+                    LogMessage?.Invoke("🔧 Progress bar transform oluşturuldu");
+                }
+
+                // ✅ ENHANCED: Transform pozisyonunu logla
+                LogMessage?.Invoke($"🔍 Progress bar mevcut pozisyon: X={progressTransform.X}");
+
+                // Soldan geri gelme animasyonu
+                var slideLeftAnimation = new DoubleAnimation
+                {
+                    From = 900, // Sağdan başla
+                    To = 0,     // Normal pozisyona
+                    Duration = TimeSpan.FromMilliseconds(700),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
+                };
+
+                LogMessage?.Invoke("🎬 Progress bar geri gelme animasyonu başlatılıyor...");
+
+                var tcs = new TaskCompletionSource<bool>();
+                slideLeftAnimation.Completed += (s, e) => {
+                    LogMessage?.Invoke("✅ Progress bar normal pozisyonda!");
+                    tcs.SetResult(true);
+                };
+
+                progressTransform.BeginAnimation(TranslateTransform.XProperty, slideLeftAnimation);
+                await tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ SlideProgressBarIn hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// ✅ YENİ: Progress bar'ı pozisyonuna göre bul (Canvas.Top="680" civarında)
+        /// </summary>
+        private Border FindProgressBarByPosition()
+        {
+            try
+            {
+                // Ana canvas'ı bul
+                var mainCanvas = FindElementByName<Canvas>(_parentWindow, "MainCanvas");
+                if (mainCanvas == null) return null;
+
+                // Canvas'taki tüm Border'ları kontrol et
+                foreach (var child in mainCanvas.Children)
+                {
+                    if (child is Border border)
+                    {
+                        // Canvas pozisyonunu kontrol et
+                        var top = Canvas.GetTop(border);
+                        var left = Canvas.GetLeft(border);
+
+                        // Energy Bar pozisyonu: Canvas.Left="266" Canvas.Top="680"
+                        if (top >= 675 && top <= 685 && left >= 260 && left <= 270)
+                        {
+                            LogMessage?.Invoke($"✅ Progress bar pozisyon ile bulundu: Top={top}, Left={left}");
+                            return border;
+                        }
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ FindProgressBarByPosition hatası: {ex.Message}");
+                return null;
+            }
+        }
+        private async Task SlideTerminalInCompletely(Border terminalPanel)
+        {
+            try
+            {
+                LogMessage?.Invoke("⬆️ Terminal yukarıdan geri geliyor...");
+
+                // Önce görünür yap
+                terminalPanel.Visibility = Visibility.Visible;
+                terminalPanel.Opacity = 1.0; // Opacity'yi resetle
+
+                // Terminal transform'unu al
+                var terminalTransform = terminalPanel.RenderTransform as TranslateTransform;
+                if (terminalTransform == null)
+                {
+                    terminalTransform = new TranslateTransform();
+                    terminalPanel.RenderTransform = terminalTransform;
+                }
+
+                // Yukarıdan aşağıya geri gelsin
+                var slideUpAnimation = new DoubleAnimation
+                {
+                    From = 650, // Aşağıdan başla
+                    To = 0,     // Normal pozisyona
+                    Duration = TimeSpan.FromMilliseconds(800),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
+                };
+
+                LogMessage?.Invoke("🎬 Terminal geri gelme animasyonu başlatılıyor...");
+
+                // Animasyon tamamlanma kontrolü
+                var tcs = new TaskCompletionSource<bool>();
+                slideUpAnimation.Completed += (s, e) => {
+                    LogMessage?.Invoke("✅ Terminal normal pozisyonda!");
+                    tcs.SetResult(true);
+                };
+
+                terminalTransform.BeginAnimation(TranslateTransform.YProperty, slideUpAnimation);
+                await tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ SlideTerminalInCompletely hatası: {ex.Message}");
+            }
+        }
         private async Task StartGamesOnlyAnimation(Border gamesPanel)
         {
             try
@@ -1125,7 +1447,7 @@ namespace Yafes.Managers
                     LogMessage?.Invoke("🔴 Games panel gizlendi");
                 }
 
-                // ✅ YENİ: Terminal'i direkt göster (animasyon yok)
+                // ✅ ENHANCED: Terminal'i direkt normal pozisyona getir
                 var terminalPanel = FindElementByTag<Border>(_parentWindow, "TerminalPanel");
                 if (terminalPanel != null)
                 {
@@ -1137,20 +1459,281 @@ namespace Yafes.Managers
 
                     // Terminal'i direkt göster
                     terminalPanel.Visibility = Visibility.Visible;
+                    terminalPanel.Opacity = 1.0; // Opacity'yi de resetle
                     terminalPanel.Height = 596; // Orijinal yükseklik
-                    LogMessage?.Invoke("📺 Terminal direkt gösterildi - animasyon yok");
+                    LogMessage?.Invoke("📺 Terminal direkt normal pozisyonda");
                 }
 
+                // ✅ YENİ: Progress bar'ı da resetle
+                ResetProgressBar();
+
                 _isGamesVisible = false;
-                LogMessage?.Invoke("✅ Force reset tamamlandı - Terminal animasyonsuz gösterildi");
+                LogMessage?.Invoke("✅ Force reset tamamlandı - Tüm elementler normal pozisyonda");
             }
             catch (Exception ex)
             {
                 LogMessage?.Invoke($"❌ ForceReset hatası: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// ✅ YENİ: Kategori değiştiğinde Games panel'den çıkış
+        /// Driver/Program butonlarına basıldığında Games'ten çık
+        /// ENHANCED: Debug mesajları eklendi
+        /// </summary>
+        public async Task<bool> ExitGamesMode()
+        {
+            try
+            {
+                if (!_isGamesVisible)
+                {
+                    LogMessage?.Invoke("⚠️ Games zaten kapalı");
+                    return true;
+                }
+
+                LogMessage?.Invoke("🔄 Kategori değişimi: Games modundan çıkılıyor...");
+
+                // ✅ DÜZELTME: Önce Games panel'i gizle ve animasyonları başlat
+                var gamesPanel = FindElementByTag<Border>(_parentWindow, "GamesPanel");
+                var terminalPanel = FindElementByTag<Border>(_parentWindow, "TerminalPanel");
+
+                LogMessage?.Invoke($"🔍 Panel kontrolü - Games: {gamesPanel != null}, Terminal: {terminalPanel != null}");
+
+                if (gamesPanel == null || terminalPanel == null)
+                {
+                    LogMessage?.Invoke("❌ Panel'ler bulunamadı");
+                    return false;
+                }
+
+                // 1. Games panel boyutunu normale döndür
+                LogMessage?.Invoke("📏 Games panel boyutu normale döndürülüyor...");
+                ResizeGamesPanel(false);
+
+                // 2. Games panel'i gizle
+                gamesPanel.Visibility = Visibility.Collapsed;
+                LogMessage?.Invoke("✅ GamesPanel gizlendi");
+
+                // 3. Terminal'i yukarıdan geri getir
+                LogMessage?.Invoke("⬆️ Terminal geri getirme başlıyor...");
+                await SlideTerminalInCompletely(terminalPanel);
+
+                // 4. Progress bar'ı soldan geri getir
+                LogMessage?.Invoke("⬅️ Progress bar geri getirme başlıyor...");
+                await SlideProgressBarIn();
+
+                // 5. Sol sidebar'ı geri getir
+                LogMessage?.Invoke("➡️ Sidebar geri getirme başlıyor...");
+                await SlideSidebarIn();
+
+                // 6. Kategori listesini geri göster
+                var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
+                if (lstDrivers != null)
+                {
+                    lstDrivers.Visibility = Visibility.Visible;
+                    LogMessage?.Invoke("✅ Kategori listesi geri gösterildi");
+                }
+                else
+                {
+                    LogMessage?.Invoke("⚠️ Kategori listesi bulunamadı");
+                }
+
+                _isGamesVisible = false;
+                LogMessage?.Invoke("✅ Kategori değişimi tamamlandı - Normal mod");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ ExitGamesMode hatası: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// ✅ YENİ: Driver kategorisine geçiş
+        /// </summary>
+        public async Task<bool> SwitchToDriverCategory()
+        {
+            try
+            {
+                LogMessage?.Invoke("🔧 Driver kategorisine geçiliyor...");
+
+                if (_isGamesVisible)
+                {
+                    bool exitSuccess = await ExitGamesMode();
+                    if (!exitSuccess)
+                    {
+                        LogMessage?.Invoke("❌ Games modundan çıkılamadı");
+                        return false;
+                    }
+                }
+
+                // Driver listesini göster
+                var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
+                if (lstDrivers != null)
+                {
+                    lstDrivers.Visibility = Visibility.Visible;
+                    LogMessage?.Invoke("✅ Driver listesi gösterildi");
+                }
+
+                LogMessage?.Invoke("✅ Driver kategorisi aktif");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ SwitchToDriverCategory hatası: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// ✅ YENİ: Program kategorisine geçiş
+        /// </summary>
+        public async Task<bool> SwitchToProgramCategory()
+        {
+            try
+            {
+                LogMessage?.Invoke("📦 Program kategorisine geçiliyor...");
+
+                if (_isGamesVisible)
+                {
+                    bool exitSuccess = await ExitGamesMode();
+                    if (!exitSuccess)
+                    {
+                        LogMessage?.Invoke("❌ Games modundan çıkılamadı");
+                        return false;
+                    }
+                }
+
+                // Program listesini göster
+                var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
+                if (lstDrivers != null)
+                {
+                    lstDrivers.Visibility = Visibility.Visible;
+                    LogMessage?.Invoke("✅ Program listesi gösterildi");
+                }
+
+                LogMessage?.Invoke("✅ Program kategorisi aktif");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ SwitchToProgramCategory hatası: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// ✅ YENİ: Tools kategorisine geçiş
+        /// </summary>
+        public async Task<bool> SwitchToToolsCategory()
+        {
+            try
+            {
+                LogMessage?.Invoke("⚙️ Tools kategorisine geçiliyor...");
+
+                if (_isGamesVisible)
+                {
+                    bool exitSuccess = await ExitGamesMode();
+                    if (!exitSuccess)
+                    {
+                        LogMessage?.Invoke("❌ Games modundan çıkılamadı");
+                        return false;
+                    }
+                }
+
+                // Tools listesini göster
+                var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
+                if (lstDrivers != null)
+                {
+                    lstDrivers.Visibility = Visibility.Visible;
+                    LogMessage?.Invoke("✅ Tools listesi gösterildi");
+                }
+
+                LogMessage?.Invoke("✅ Tools kategorisi aktif");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ SwitchToToolsCategory hatası: {ex.Message}");
+                return false;
+            }
+        }
+        private void ResetProgressBar()
+        {
+            try
+            {
+                // Progress bar'ı bul
+                Border progressBarContainer = null;
+                string[] possibleNames = { "progressBar", "EnergyBar", "StatusBar", "ProgressBarContainer" };
+
+                foreach (var name in possibleNames)
+                {
+                    var element = FindElementByName<ProgressBar>(_parentWindow, name);
+                    if (element != null)
+                    {
+                        progressBarContainer = element.Parent as Border;
+                        break;
+                    }
+                }
+
+                if (progressBarContainer == null)
+                {
+                    foreach (var name in possibleNames)
+                    {
+                        progressBarContainer = FindElementByName<Border>(_parentWindow, name);
+                        if (progressBarContainer != null) break;
+                    }
+                }
+
+                if (progressBarContainer == null)
+                {
+                    progressBarContainer = FindProgressBarByPosition();
+                }
+
+                if (progressBarContainer != null)
+                {
+                    // Transform'u resetle
+                    if (progressBarContainer.RenderTransform is TranslateTransform progressTransform)
+                    {
+                        progressTransform.X = 0; // Pozisyonu resetle
+                    }
+
+                    // Görünürlük ve opacity'yi resetle
+                    progressBarContainer.Visibility = Visibility.Visible;
+                    progressBarContainer.Opacity = 1.0;
+                    LogMessage?.Invoke("📊 Progress bar normal pozisyonda");
+                }
+                else
+                {
+                    LogMessage?.Invoke("⚠️ Progress bar bulunamadı - reset atlandı");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ ResetProgressBar hatası: {ex.Message}");
+            }
+        }
+
+        // ✅ YENİ: StartShowAnimations metodu güncellendi
+        private async Task StartShowAnimations(Border gamesPanel, Border terminalPanel)
+        {
+            try
+            {
+                LogMessage?.Invoke("🎬 Animasyonlar başlatılıyor...");
+
+                // ✅ DEĞİŞTİRİLDİ: Terminal'i tamamen kayarak kaybet
+                await SlideTerminalOutCompletely(terminalPanel);
+
+                // Games panel animasyonu
+                await StartGamesOnlyAnimation(gamesPanel);
+
+                LogMessage?.Invoke("✅ Tüm animasyonlar tamamlandı");
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ StartShowAnimations hatası: {ex.Message}");
+            }
+        }
     }
 }
-=======
-        /// 
->>>>>>> 0193895aa87a8bda8753e8df83bb4c0b9c51b14d

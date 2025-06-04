@@ -10,6 +10,64 @@
         AllowsTransparency="True">
 
     <Window.Resources>
+        <!-- ✅ YENİ: XAML Animasyon Storyboard'ları -->
+
+        <!-- Terminal Slide Out (Aşağı) -->
+        <Storyboard x:Key="TerminalSlideOut">
+            <DoubleAnimation Storyboard.TargetName="TerminalTransform" 
+                           Storyboard.TargetProperty="Y"
+                           From="0" To="650" Duration="0:0:0.8">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="TerminalPanel" 
+                           Storyboard.TargetProperty="Opacity"
+                           From="1" To="0" Duration="0:0:0.6" BeginTime="0:0:0.2"/>
+        </Storyboard>
+
+        <!-- Terminal Slide In (Yukarıdan) -->
+        <Storyboard x:Key="TerminalSlideIn">
+            <DoubleAnimation Storyboard.TargetName="TerminalTransform" 
+                           Storyboard.TargetProperty="Y"
+                           From="650" To="0" Duration="0:0:0.8">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="TerminalPanel" 
+                           Storyboard.TargetProperty="Opacity"
+                           From="1" To="1" Duration="0:0:0.1"/>
+        </Storyboard>
+
+        <!-- Progress Bar Slide Out (Sağa) -->
+        <Storyboard x:Key="ProgressBarSlideOut">
+            <DoubleAnimation Storyboard.TargetName="ProgressBarTransform" 
+                           Storyboard.TargetProperty="X"
+                           From="0" To="900" Duration="0:0:0.7">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="ProgressBarContainer" 
+                           Storyboard.TargetProperty="Opacity"
+                           From="1" To="0" Duration="0:0:0.5" BeginTime="0:0:0.15"/>
+        </Storyboard>
+
+        <!-- Progress Bar Slide In (Soldan) -->
+        <Storyboard x:Key="ProgressBarSlideIn">
+            <DoubleAnimation Storyboard.TargetName="ProgressBarTransform" 
+                           Storyboard.TargetProperty="X"
+                           From="900" To="0" Duration="0:0:0.7">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="ProgressBarContainer" 
+                           Storyboard.TargetProperty="Opacity"
+                           From="1" To="1" Duration="0:0:0.1"/>
+        </Storyboard>
+
         <!-- Lambda Panel Style -->
         <Style x:Key="LambdaPanelStyle" TargetType="Border">
             <Setter Property="Background">
@@ -744,8 +802,11 @@
         </Border>
 
         <!-- Energy Bar -->
-        <Border Canvas.Left="266" Canvas.Top="680" Width="824" Height="22" 
+        <Border x:Name="ProgressBarContainer" Canvas.Left="266" Canvas.Top="680" Width="824" Height="22" 
                 Style="{StaticResource LambdaPanelStyle}">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="ProgressBarTransform" X="0"/>
+            </Border.RenderTransform>
             <ProgressBar x:Name="progressBar" Style="{StaticResource LambdaProgressStyle}" 
                         Margin="-2,0,8,0" Height="10" VerticalAlignment="Center"/>
         </Border>
