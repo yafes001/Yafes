@@ -245,22 +245,6 @@
             </Setter>
         </Style>
 
-        <!-- Game Card Style - YENİ -->
-        <Style x:Key="GameCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="#80000000"/>
-            <Setter Property="BorderBrush" Value="#FFA500"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Height" Value="80"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#FFA500" BlurRadius="6" ShadowDepth="0" Opacity="0.4"/>
-                </Setter.Value>
-            </Setter>
-            <!-- EventSetter'lar GamesManager'da programatik olarak ekleniyor -->
-        </Style>
-
         <!-- Lambda Text Style -->
         <Style x:Key="LambdaTextStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#FFA500"/>
@@ -607,14 +591,14 @@
             </Canvas>
         </Border>
 
-        <!-- Left Sidebar - ANİMASYONLU SLIDE EKLEMEK İÇİN TRANSFORM'U CANLANDIRIYORUZ -->
+        <!-- Left Sidebar - ANİMASYONLU SLIDE -->
         <Border x:Name="LeftSidebar" Canvas.Left="8" Canvas.Top="76" Width="250" Height="626" 
                 Style="{StaticResource LambdaPanelStyle}">
             <Border.RenderTransform>
                 <TranslateTransform x:Name="LeftSidebarTransform" X="0"/>
             </Border.RenderTransform>
             <Canvas Margin="15">
-                <!-- System Info Section - SADECE GPU İÇİN GENİŞLETİLMİŞ -->
+                <!-- System Info Section -->
                 <Border Canvas.Left="0" Canvas.Top="0" Width="220" Height="120" 
                         Background="#80000000" BorderBrush="#66FFA500" BorderThickness="1">
                     <Canvas Margin="10">
@@ -626,7 +610,7 @@
                         <TextBlock x:Name="txtOSInfo" Canvas.Left="42" Canvas.Top="25" Text="Yükleniyor..." 
                                   Style="{StaticResource LambdaTextStyle}" FontSize="9" Width="160"/>
 
-                        <!-- GPU Bilgisi - GENİŞLETİLDİ -->
+                        <!-- GPU Bilgisi -->
                         <TextBlock Canvas.Left="0" Canvas.Top="42" Text="GPU:" Foreground="#CCCCCC" FontSize="9" Width="40"/>
                         <TextBlock x:Name="txtGPUInfo" Canvas.Left="42" Canvas.Top="42" Text="Yükleniyor..." 
                                   Style="{StaticResource LambdaTextStyle}" FontSize="9" Width="160"/>
@@ -692,7 +676,7 @@
             </Canvas>
         </Border>
 
-        <!-- Main Terminal Area - ANİMASYONLU TERMINAL -->
+        <!-- Main Terminal Area -->
         <Border x:Name="TerminalPanel" Canvas.Left="266" Canvas.Top="76" Width="616" Height="596" 
                 Style="{StaticResource LambdaPanelStyle}"
                 Tag="TerminalPanel">
@@ -725,8 +709,8 @@
             </Canvas>
         </Border>
 
-        <!-- YENİ GAMES PANEL - BAŞLANGIÇTA GİZLİ VE ANİMASYONLU -->
-        <Border x:Name="GamesPanel" Canvas.Left="266" Canvas.Top="76" Width="616" Height="520" 
+        <!-- ✅ YENİ GAMES PANEL - SOL TARAFA GENİŞLETİLMİŞ + LOG ALANINI DA KAPLAR -->
+        <Border x:Name="GamesPanel" Canvas.Left="8" Canvas.Top="76" Width="874" Height="596" 
                 Style="{StaticResource LambdaPanelStyle}"
                 Visibility="Collapsed"
                 Tag="GamesPanel">
@@ -734,8 +718,8 @@
                 <TranslateTransform x:Name="GamesPanelTransform" Y="-50"/>
             </Border.RenderTransform>
             <Canvas>
-                <!-- Games Header -->
-                <Border Canvas.Left="0" Canvas.Top="0" Width="616" Height="28" 
+                <!-- Games Header - GENİŞLETİLMİŞ -->
+                <Border Canvas.Left="0" Canvas.Top="0" Width="874" Height="28" 
                         BorderThickness="0,0,0,1" BorderBrush="#FFA500">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
@@ -748,12 +732,11 @@
                               FontSize="14" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0,0,0"/>
                 </Border>
 
-                <!-- Games Content Grid - STATIC KARTLAR KALDIRILDI -->
-                <ScrollViewer x:Name="gamesScrollViewer" Canvas.Left="15" Canvas.Top="43" Width="586" Height="457" 
+                <!-- Games Content Grid - GENİŞLETİLMİŞ VE YÜKSELTİLMİŞ -->
+                <ScrollViewer x:Name="gamesScrollViewer" Canvas.Left="15" Canvas.Top="43" Width="844" Height="533" 
                              VerticalScrollBarVisibility="Auto">
-                    <!-- ✅ YENİ: Boş UniformGrid - Dinamik olarak doldurulacak -->
-                    <UniformGrid x:Name="gamesGrid" Columns="4" Margin="10">
-                        <!-- STATIC KARTLAR KALDIRILDI -->
+                    <!-- ✅ GENİŞLETİLMİŞ: UniformGrid - Sol sidebar + LOG alanını da kaplar -->
+                    <UniformGrid x:Name="gamesGrid" Columns="8" Margin="10">
                         <!-- Kartlar GamesPanelManager tarafından programatik olarak eklenecek -->
                     </UniformGrid>
                 </ScrollViewer>

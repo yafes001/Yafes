@@ -58,8 +58,72 @@ namespace Yafes.Managers
         {
             try
             {
-                // Sol sidebar'ı bul (Name ile)
-                _leftSidebar = FindElementByName<Border>(_parentWindow, "LeftSidebar");
+                // Sol taraftaki sistem bilgisi/işlemler panelini bul
+                // Muhtemel isimler: SystemInfo, LeftPanel, InfoPanel, SystemPanel
+                string[] possibleNames = {
+                    "SystemInfoPanel", "LeftPanel", "InfoPanel", "SystemPanel",
+                    "LeftSidebar", "leftSidebar", "SidePanel"
+                };
+
+                foreach (var name in possibleNames)
+                {
+                    _leftSidebar = FindElementByName<Border>(_parentWindow, name);
+                    if (_leftSidebar != null)
+                    {
+                        LogMessage?.Invoke($"✅ Sol sistem paneli bulundu: {name}");
+                        break;
+                    }
+                }
+
+                // Border bulunamazsa Grid veya StackPanel dene
+                if (_leftSidebar == null)
+                {
+                    foreach (var name in possibleNames)
+                    {
+                        var panel = FindElementByName<Grid>(_parentWindow, name);
+                        if (panel != null)
+                        {
+                            // Grid'in parent'ını Border olarak bul
+                            var parent = VisualTreeHelper.GetParent(panel);
+                            while (parent != null && !(parent is Border))
+                            {
+                                parent = VisualTreeHelper.GetParent(parent);
+                            }
+                            _leftSidebar = parent as Border;
+
+                            if (_leftSidebar != null)
+                            {
+                                LogMessage?.Invoke($"✅ Sol sistem paneli (Grid parent) bulundu: {name}");
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Hala bulunamazsa StackPanel dene
+                if (_leftSidebar == null)
+                {
+                    foreach (var name in possibleNames)
+                    {
+                        var panel = FindElementByName<StackPanel>(_parentWindow, name);
+                        if (panel != null)
+                        {
+                            // StackPanel'in parent'ını Border olarak bul
+                            var parent = VisualTreeHelper.GetParent(panel);
+                            while (parent != null && !(parent is Border))
+                            {
+                                parent = VisualTreeHelper.GetParent(parent);
+                            }
+                            _leftSidebar = parent as Border;
+
+                            if (_leftSidebar != null)
+                            {
+                                LogMessage?.Invoke($"✅ Sol sistem paneli (StackPanel parent) bulundu: {name}");
+                                break;
+                            }
+                        }
+                    }
+                }
 
                 if (_leftSidebar != null)
                 {
@@ -70,16 +134,88 @@ namespace Yafes.Managers
                         _leftSidebarTransform = new TranslateTransform();
                         _leftSidebar.RenderTransform = _leftSidebarTransform;
                     }
-                    LogMessage?.Invoke("✅ Sol sidebar slide sistemi hazır");
+                    LogMessage?.Invoke("✅ Sol sistem paneli slide sistemi hazır");
                 }
                 else
                 {
-                    LogMessage?.Invoke("⚠️ LeftSidebar bulunamadı - Name='LeftSidebar' kontrol edin");
+                    LogMessage?.Invoke("❌ Sol sistem paneli bulunamadı - slide animasyonu devre dışı");
                 }
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ Sidebar başlatma hatası: {ex.Message}");
+                LogMessage?.Invoke($"❌ Sol sistem paneli başlatma hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// ✅ YENİ: Games panel boyutunu ayarlar (tam genişlik/normal mod)
+        /// </summary>
+        private void ResizeGamesPanel(bool fullWidth)
+        {
+            try
+            {
+                var gamesPanel = FindElementByTag<Border>(_parentWindow, "GamesPanel");
+                if (gamesPanel == null)
+                {
+                    LogMessage?.Invoke("⚠️ ResizeGamesPanel: GamesPanel bulunamadı");
+                    return;
+                }
+
+                if (fullWidth)
+                {
+                    // Tam genişlik modu - Sol siyah alan + sağ kategori öncesi genişletme
+                    gamesPanel.Width = Double.NaN; // Auto width
+                    gamesPanel.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    gamesPanel.Margin = new Thickness(0, 0, 305, 0); // Sol:0 (tamamen sola), Sağ:305px (kategori öncesi)
+                    LogMessage?.Invoke("📊 Games panel: Sol tam genişletme + sağ kategori öncesine kadar");
+                }
+                else
+                {
+                    // Normal mod - Orjinal merkez pozisyon
+                    gamesPanel.Width = 800; // Varsayılan genişlik
+                    gamesPanel.HorizontalAlignment = HorizontalAlignment.Center;
+                    gamesPanel.Margin = new Thickness(5); // Normal margin
+                    LogMessage?.Invoke("📊 Games panel NORMAL boyuta döndü");
+                }
+
+                // Games grid'in sütun sayısını da güncelle
+                var gamesGrid = FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
+                if (gamesGrid != null)
+                {
+                    if (fullWidth)
+                    {
+                        gamesGrid.Columns = 10; // ✅ Tam genişlik kullanımı - 10 sütun optimal
+                        LogMessage?.Invoke("🎮 Games grid: 10 sütun (tam genişlik - sol siyah alan dahil)");
+                    }
+                    else
+                    {
+                        gamesGrid.Columns = 4; // Normal modda 4 sütun
+                        LogMessage?.Invoke("🎮 Games grid: 4 sütun (normal)");
+                    }
+                }
+
+                // OYUNLAR başlığını da genişlet
+                var gamesTitlePanel = FindElementByTag<Border>(_parentWindow, "GamesTitlePanel") ??
+                                    FindElementByName<Border>(_parentWindow, "GamesTitlePanel");
+                if (gamesTitlePanel != null)
+                {
+                    if (fullWidth)
+                    {
+                        gamesTitlePanel.HorizontalAlignment = HorizontalAlignment.Stretch;
+                        gamesTitlePanel.Margin = new Thickness(0, 0, 305, 0);
+                        LogMessage?.Invoke("📊 OYUNLAR başlığı genişletildi");
+                    }
+                    else
+                    {
+                        gamesTitlePanel.HorizontalAlignment = HorizontalAlignment.Center;
+                        gamesTitlePanel.Margin = new Thickness(5);
+                        LogMessage?.Invoke("📊 OYUNLAR başlığı normale döndü");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ ResizeGamesPanel hatası: {ex.Message}");
             }
         }
 
@@ -242,10 +378,10 @@ namespace Yafes.Managers
                 gamesPanel.Visibility = Visibility.Visible;
                 LogMessage?.Invoke("✅ GamesPanel.Visibility = Visible");
 
-                // 4. Animasyonları başlat
+                // 5. Animasyonları başlat
                 await StartShowAnimations(gamesPanel, terminalPanel);
 
-                // 5. Kategori listesini gizle
+                // 6. Kategori listesini gizle
                 var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
                 if (lstDrivers != null)
                 {
@@ -253,11 +389,11 @@ namespace Yafes.Managers
                     LogMessage?.Invoke("✅ Kategori listesi gizlendi");
                 }
 
-                // 6. ✅ ENHANCED: Oyun verilerini tam genişlik modunda yükle
+                // 7. ✅ ENHANCED: Oyun verilerini tam genişlik modunda yükle
                 LogMessage?.Invoke("📊 Oyun verileri tam genişlik modunda yükleniyor...");
                 await LoadGamesIntoPanel(gamesPanel);
 
-                LogMessage?.Invoke("✅ BİTİŞ: Games panel tamamen açıldı ve maksimum genişlikte yüklendi!");
+                LogMessage?.Invoke("✅ BİTİŞ: Games panel tamamen açıldı ve manuel test uygulandı!");
                 return true;
             }
             catch (Exception ex)
@@ -268,7 +404,7 @@ namespace Yafes.Managers
         }
 
         /// <summary>
-        /// ENHANCED: Games panelini gizler + Normal boyuta döndürür
+        /// ENHANCED: Games panelini gizler + LOG terminal'i geri gösterir
         /// </summary>
         private bool HideGamesPanel()
         {
@@ -285,15 +421,16 @@ namespace Yafes.Managers
                     return false;
                 }
 
-                // ✅ YENİ: Games panel'i normal boyuta döndür
+                // ✅ YENİ: Games panel boyutunu normale döndür
                 ResizeGamesPanel(false);
 
                 // Games panel'i gizle
                 gamesPanel.Visibility = Visibility.Collapsed;
                 LogMessage?.Invoke("✅ GamesPanel.Visibility = Collapsed");
 
-                // Terminal'i normale döndür
-                StartHideAnimations(terminalPanel);
+                // ✅ YENİ: LOG Terminal'i geri göster (kayma animasyonu yok)
+                terminalPanel.Visibility = Visibility.Visible;
+                LogMessage?.Invoke("✅ LOG Terminal geri gösterildi");
 
                 // Kategori listesini geri göster
                 var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
@@ -303,7 +440,7 @@ namespace Yafes.Managers
                     LogMessage?.Invoke("✅ Kategori listesi geri gösterildi");
                 }
 
-                LogMessage?.Invoke("✅ BİTİŞ: Games panel tamamen gizlendi ve normal layout restore edildi");
+                LogMessage?.Invoke("✅ BİTİŞ: Games panel gizlendi, LOG terminal geri geldi");
                 return true;
             }
             catch (Exception ex)
@@ -314,37 +451,12 @@ namespace Yafes.Managers
         }
 
         /// <summary>
-        /// ENHANCED: Panel gösterme animasyonları - Daha agresif layout değişikliği
+        /// ✅ YENİ: Sadece Games Panel animasyonu (Terminal yok)
         /// </summary>
-        private async Task StartShowAnimations(Border gamesPanel, Border terminalPanel)
+        private async Task StartGamesOnlyAnimation(Border gamesPanel)
         {
             try
             {
-                // Terminal animasyonu
-                var terminalTransform = terminalPanel.RenderTransform as TranslateTransform;
-                if (terminalTransform == null)
-                {
-                    terminalTransform = new TranslateTransform();
-                    terminalPanel.RenderTransform = terminalTransform;
-                }
-
-                var terminalMoveAnimation = new DoubleAnimation
-                {
-                    From = 0,
-                    To = 520, // ✅ GÜNCELLENME: Terminal'i daha aşağı kay (520px)
-                    Duration = TimeSpan.FromMilliseconds(600),
-                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
-                };
-
-                // ✅ ENHANCED: Terminal yüksekliğini çok küçült
-                var terminalResizeAnimation = new DoubleAnimation
-                {
-                    From = 596,
-                    To = 76, // ✅ GÜNCELLENME: Sadece 76px yükseklik (minimal log alanı)
-                    Duration = TimeSpan.FromMilliseconds(600),
-                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
-                };
-
                 // Games Panel animasyonu
                 var gamesPanelTransform = gamesPanel.RenderTransform as TranslateTransform;
                 if (gamesPanelTransform == null)
@@ -370,59 +482,30 @@ namespace Yafes.Managers
                     BeginTime = TimeSpan.FromMilliseconds(200)
                 };
 
-                LogMessage?.Invoke("🎬 Enhanced layout animasyonları başlatılıyor...");
+                LogMessage?.Invoke("🎬 Games panel animasyonu başlatılıyor...");
 
-                // ✅ ENHANCED: Tüm animasyonları birlikte başlat
-                terminalTransform.BeginAnimation(TranslateTransform.YProperty, terminalMoveAnimation);
-                terminalPanel.BeginAnimation(FrameworkElement.HeightProperty, terminalResizeAnimation);
+                // ✅ Sadece Games Panel animasyonları
                 gamesPanelTransform.BeginAnimation(TranslateTransform.YProperty, gamesPanelShowAnimation);
                 gamesPanel.BeginAnimation(UIElement.OpacityProperty, gamesPanelOpacityAnimation);
 
                 // Animasyon tamamlanana kadar bekle
                 await Task.Delay(700);
 
-                LogMessage?.Invoke("✅ Layout animasyonları tamamlandı - Games modu aktif!");
+                LogMessage?.Invoke("✅ Games panel animasyonu tamamlandı!");
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ StartShowAnimations hatası: {ex.Message}");
+                LogMessage?.Invoke($"❌ StartGamesOnlyAnimation hatası: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// MEVCUT: Panel gizleme animasyonları (terminal yüksekliği güncellendi)
+        /// ✅ KALDIRILDI: Eski terminal animasyon metodu - artık kullanılmıyor
         /// </summary>
         private void StartHideAnimations(Border terminalPanel)
         {
-            try
-            {
-                var terminalTransform = terminalPanel.RenderTransform as TranslateTransform;
-                if (terminalTransform != null)
-                {
-                    var terminalMoveAnimation = new DoubleAnimation
-                    {
-                        To = 0, // Normal pozisyona dön
-                        Duration = TimeSpan.FromMilliseconds(500),
-                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
-                    };
-
-                    // ✅ YENİ: Terminal yüksekliğini normale döndür
-                    var terminalResizeAnimation = new DoubleAnimation
-                    {
-                        To = 596, // Orijinal yüksekliğe dön
-                        Duration = TimeSpan.FromMilliseconds(500),
-                        EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut }
-                    };
-
-                    terminalTransform.BeginAnimation(TranslateTransform.YProperty, terminalMoveAnimation);
-                    terminalPanel.BeginAnimation(FrameworkElement.HeightProperty, terminalResizeAnimation);
-                    LogMessage?.Invoke("🎬 Terminal gizleme animasyonu başlatıldı");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogMessage?.Invoke($"❌ StartHideAnimations hatası: {ex.Message}");
-            }
+            // Bu metod artık kullanılmıyor - Terminal direkt gizleniyor/gösteriliyor
+            LogMessage?.Invoke("⚠️ StartHideAnimations artık kullanılmıyor - direkt visibility değişimi yapılıyor");
         }
 
         /// <summary>
@@ -448,11 +531,11 @@ namespace Yafes.Managers
                 // Önce mevcut kartları temizle
                 gamesGrid.Children.Clear();
 
-                // ✅ ENHANCED: Tam genişlik modunda çok daha fazla sütun
+                // ✅ Sidebar slide durumuna göre sütun sayısı ayarla
                 if (_leftSidebar != null && _leftSidebarTransform != null && _leftSidebarTransform.X < -200)
                 {
-                    gamesGrid.Columns = 12; // ✅ ENHANCED: Tam genişlik modunda 12 sütun! (maksimum oyun)
-                    LogMessage?.Invoke("📊 TAM GENİŞLİK MODU: 12 sütun oyun grid'i - Maksimum oyun listesi!");
+                    gamesGrid.Columns = 8; // ✅ Sol alan dahil 8 sütun
+                    LogMessage?.Invoke("📊 TAM GENİŞLİK MODU: 8 sütun oyun grid'i - Sol alan dahil!");
                 }
                 else
                 {
@@ -472,8 +555,8 @@ namespace Yafes.Managers
 
                 LogMessage?.Invoke($"✅ {games.Count} oyun verisi yüklendi, kartlar oluşturuluyor...");
 
-                // Her oyun için kart oluştur - ✅ ENHANCED: Daha fazla oyun göster
-                foreach (var game in games.Take(60)) // ✅ ENHANCED: Maksimum 60 oyun göster (12x5 grid)
+                // Her oyun için kart oluştur
+                foreach (var game in games.Take(40)) // ✅ 8 sütun x 5 satır = 40 oyun optimal
                 {
                     var gameCard = CreateGameCard(game);
                     if (gameCard != null)
@@ -1038,28 +1121,27 @@ namespace Yafes.Managers
                     gamesPanel.Visibility = Visibility.Collapsed;
                     gamesPanel.Opacity = 1; // Opacity'yi resetle
 
-                    // ✅ YENİ: Panel boyutunu normale döndür
-                    ResizeGamesPanel(false);
-
-                    LogMessage?.Invoke("🔴 Games panel gizlendi ve normal boyuta döndürüldü");
+                    LogMessage?.Invoke("🔴 Games panel gizlendi");
                 }
 
-                // Terminal'i normale döndür - ENHANCED
+                // ✅ YENİ: Terminal'i direkt göster (animasyon yok)
                 var terminalPanel = FindElementByTag<Border>(_parentWindow, "TerminalPanel");
                 if (terminalPanel != null)
                 {
+                    // Terminal transform'larını sıfırla
                     if (terminalPanel.RenderTransform is TranslateTransform terminalTransform)
                     {
                         terminalTransform.Y = 0; // Pozisyonu resetle
                     }
 
-                    // Yüksekliği normale döndür
+                    // Terminal'i direkt göster
+                    terminalPanel.Visibility = Visibility.Visible;
                     terminalPanel.Height = 596; // Orijinal yükseklik
-                    LogMessage?.Invoke("📺 Terminal normal boyutta");
+                    LogMessage?.Invoke("📺 Terminal direkt gösterildi - animasyon yok");
                 }
 
                 _isGamesVisible = false;
-                LogMessage?.Invoke("✅ Enhanced force reset tamamlandı - Normal layout restored");
+                LogMessage?.Invoke("✅ Force reset tamamlandı - Terminal animasyonsuz gösterildi");
             }
             catch (Exception ex)
             {
