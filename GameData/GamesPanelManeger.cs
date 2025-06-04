@@ -13,42 +13,36 @@ using System.Windows.Media.Imaging;
 
 namespace Yafes.Managers
 {
-    /// <summary>
-    /// Games Panel yönetimi - XAML Storyboard entegrasyonlu
-    /// V3 Final: Window Height Animation + Clean Code
-    /// </summary>
     public class GamesPanelManager
     {
         private readonly Window _parentWindow;
         private readonly TextBox _logTextBox;
         private bool _isGamesVisible = false;
 
-        // Sol Sidebar Animation
         private Border _leftSidebar;
         private TranslateTransform _leftSidebarTransform;
         private const double SIDEBAR_SLIDE_DISTANCE = -280;
         private const double ANIMATION_DURATION = 600;
 
-        // Progress Bar Animation
         private Border _progressBarContainer;
         private TranslateTransform _progressBarTransform;
         private const double PROGRESSBAR_SLIDE_DISTANCE = 800;
         private const double PROGRESSBAR_ANIMATION_DURATION = 800;
 
-        // Window Height Animation
         private double _originalWindowHeight;
         private double _progressBarHeight = 0;
         private bool _isWindowCompact = false;
         private const double WINDOW_HEIGHT_DURATION = 700;
         private Canvas _mainCanvas;
 
-        // XAML Storyboards
         private Storyboard _terminalSlideOut;
         private Storyboard _terminalSlideIn;
         private Storyboard _progressBarSlideOut;
         private Storyboard _progressBarSlideIn;
 
-        // Events
+        private readonly Dictionary<string, bool> _imageLoadingStates = new Dictionary<string, bool>();
+        private static bool _diskStatusChecked = false;
+
         public event Action<string> LogMessage;
 
         public GamesPanelManager(Window parentWindow, TextBox logTextBox)
@@ -67,9 +61,99 @@ namespace Yafes.Managers
             InitializeProgressBarElements();
             InitializeWindowHeightAnimation();
             InitializeStoryboards();
+
+            if (!_diskStatusChecked)
+            {
+                _diskStatusChecked = true;
+            }
         }
 
         public bool IsGamesVisible => _isGamesVisible;
+
+        public async Task ShowDebugInfoPopup()
+        {
+            try
+            {
+                var debugInfo = await Task.Run(() =>
+                {
+                    var info = "=== IMAGE MANAGER DEBUG INFO ===\n";
+                    var diskStatus = ImageManager.GetDiskStatus();
+                    info += diskStatus + "\n";
+
+                    var cacheStats = ImageManager.GetCacheStats();
+                    info += $"Cache Items: {cacheStats.cachedCount}\n";
+                    info += $"Available Files: {cacheStats.availableFiles}\n";
+                    info += $"GamesIcons Path: {cacheStats.gamesPath}\n\n";
+
+                    info += "=== FILE TEST ===\n";
+                    var testFile = "age_of_darkness_final_stand_FG_5.1GB.png";
+                    var testResult = ImageManager.GetGameImage(testFile);
+                    var isDefault = (testResult == ImageManager.GetDefaultImage());
+                    info += $"Test File: {testFile}\n";
+                    info += $"Result: {(isDefault ? "NOT FOUND (DEFAULT)" : "FOUND (SUCCESS)")}\n\n";
+
+                    if (!string.IsNullOrEmpty(cacheStats.gamesPath) && Directory.Exists(cacheStats.gamesPath))
+                    {
+                        var files = Directory.GetFiles(cacheStats.gamesPath, "*.png").Take(10);
+                        info += "=== ACTUAL FILES IN FOLDER ===\n";
+                        foreach (var file in files)
+                        {
+                            info += $"- {Path.GetFileName(file)}\n";
+                        }
+                    }
+                    else
+                    {
+                        info += "=== MANUAL PATH CHECK ===\n";
+                        string manualPath = @"D:\GamesIcons";
+                        bool exists = Directory.Exists(manualPath);
+                        info += $"D:\\GamesIcons exists: {exists}\n";
+
+                        if (exists)
+                        {
+                            var files = Directory.GetFiles(manualPath, "*.png").Take(5);
+                            info += $"Found {files.Count()} PNG files:\n";
+                            foreach (var file in files)
+                            {
+                                info += $"- {Path.GetFileName(file)}\n";
+                            }
+                        }
+                    }
+                    return info;
+                });
+
+                MessageBox.Show(debugInfo, "🔍 Image Manager Debug Info",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Debug error: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        public async Task RefreshDiskPaths()
+        {
+            try
+            {
+                await Task.Run(() =>
+                {
+                    ImageManager.RefreshPaths();
+                    ImageManager.ClearCache();
+                });
+
+                if (_isGamesVisible)
+                {
+                    var gamesPanel = FindElementByTag<Border>(_parentWindow, "GamesPanel");
+                    if (gamesPanel != null)
+                    {
+                        await LoadGamesIntoPanel(gamesPanel);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+        }
 
         private void InitializeWindowHeightAnimation()
         {
@@ -81,7 +165,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -92,7 +175,7 @@ namespace Yafes.Managers
                 if (_progressBarContainer != null)
                 {
                     _progressBarHeight = _progressBarContainer.ActualHeight;
-                    
+
                     if (_progressBarHeight <= 0)
                     {
                         _progressBarHeight = _progressBarContainer.Height;
@@ -100,15 +183,15 @@ namespace Yafes.Managers
 
                     if (double.IsNaN(_progressBarHeight) || _progressBarHeight <= 0)
                     {
-                        _progressBarHeight = 22; // XAML default
+                        _progressBarHeight = 22;
                     }
 
                     _progressBarHeight += 10;
-                    _progressBarHeight *= 2; // Double height reduction
+                    _progressBarHeight *= 2;
                 }
                 else
                 {
-                    _progressBarHeight = 64; // Fallback
+                    _progressBarHeight = 64;
                 }
             }
             catch
@@ -142,7 +225,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -171,7 +253,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -186,7 +267,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -208,7 +288,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -230,7 +309,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -289,7 +367,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -319,7 +396,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -352,7 +428,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -402,39 +477,24 @@ namespace Yafes.Managers
             {
                 if (!_isGamesVisible)
                 {
-                    // Sıralı açılış animasyonu
-                    // 1. Önce sol sidebar sola kayar
                     await SlideSidebarOut();
-                    
-                    // 2. Games panel gösterilir
                     bool success = await ShowGamesPanel();
                     if (success)
                     {
                         _isGamesVisible = true;
-                        
-                        // 3. Progress bar sağa kayar
                         await SlideProgressBarOut();
-                        
-                        // 4. Son olarak window yukarı kayar (CompactWindowHeight zaten SlideProgressBarOut içinde)
                     }
                     return success;
                 }
                 else
                 {
-                    // Sıralı kapanış animasyonu (ters sırada)
-                    // 1. Window aşağı kayar + Progress bar geri gelir
                     await SlideProgressBarIn();
-                    
-                    // 2. Games panel gizlenir
                     bool success = await HideGamesPanel();
                     if (success)
                     {
                         _isGamesVisible = false;
                     }
-                    
-                    // 3. Sol sidebar geri gelir
                     await SlideSidebarIn();
-                    
                     return success;
                 }
             }
@@ -468,7 +528,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -496,7 +555,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -550,7 +608,6 @@ namespace Yafes.Managers
                     lstDrivers.Visibility = Visibility.Collapsed;
                 }
 
-                // Küçük gecikme ile layout'un tamamlanmasını bekle
                 await Task.Delay(100);
                 await LoadGamesIntoPanel(gamesPanel);
 
@@ -642,8 +699,6 @@ namespace Yafes.Managers
                 if (gamesGrid == null) return;
 
                 gamesGrid.Children.Clear();
-
-                // Layout update için kısa bekleme
                 await Task.Delay(50);
 
                 if (_leftSidebar != null && _leftSidebarTransform != null && _leftSidebarTransform.X < -200)
@@ -665,14 +720,19 @@ namespace Yafes.Managers
 
                 foreach (var game in games.Take(40))
                 {
-                    var gameCard = await CreateGameCard(game);
-                    if (gameCard != null)
+                    try
                     {
-                        gamesGrid.Children.Add(gameCard);
+                        var gameCard = await CreateGameCard(game);
+                        if (gameCard != null)
+                        {
+                            gamesGrid.Children.Add(gameCard);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
                     }
                 }
 
-                // Final layout update
                 gamesGrid.UpdateLayout();
             }
             catch (Exception ex)
@@ -727,18 +787,9 @@ namespace Yafes.Managers
                             Margin = new Thickness(0, 0, 0, 5)
                         };
 
-                        var imageName = Path.GetFileNameWithoutExtension(game.ImageName);
-                        
-                        // ImageManager'ın hazır olmasını kontrol et
-                        BitmapImage bitmapImage = null;
-                        for (int retry = 0; retry < 3; retry++)
-                        {
-                            bitmapImage = Yafes.Managers.ImageManager.GetGameImage(imageName);
-                            if (bitmapImage != null) break;
-                            await Task.Delay(10); // Kısa retry delay
-                        }
+                        BitmapImage bitmapImage = await Task.Run(() => ImageManager.GetGameImage(game.ImageName));
 
-                        if (bitmapImage != null)
+                        if (bitmapImage != null && bitmapImage != ImageManager.GetDefaultImage())
                         {
                             gameImage.Source = bitmapImage;
                             stackPanel.Children.Add(gameImage);
@@ -871,7 +922,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -970,7 +1020,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -995,7 +1044,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -1010,7 +1058,6 @@ namespace Yafes.Managers
                     if (card.Tag is Yafes.Models.GameData gameData)
                     {
                         gameName = gameData.Name;
-                        LogMessage?.Invoke($"🎯 {gameName} kurulum kuyruğuna eklendi!");
                     }
                     else
                     {
@@ -1018,7 +1065,6 @@ namespace Yafes.Managers
                         if (stackPanel?.Children.Count >= 2 && stackPanel.Children[1] is TextBlock gameNameTextBlock)
                         {
                             gameName = gameNameTextBlock.Text;
-                            LogMessage?.Invoke($"🎯 {gameName} kurulum kuyruğuna eklendi!");
                         }
                     }
 
@@ -1027,7 +1073,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -1050,7 +1095,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
 
@@ -1144,7 +1188,6 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Silent error handling
             }
         }
     }

@@ -42,11 +42,11 @@ namespace Yafes.Managers
                 // JSON'dan yükle
                 var games = await LoadGamesFromJsonAsync();
 
-                // Eğer JSON'dan oyun gelmezse, embedded resource'lardan otomatik oluştur
+                // Eğer JSON'dan oyun gelmezse, GamesIcons klasöründen otomatik oluştur
                 if (games == null || games.Count == 0)
                 {
-                    System.Diagnostics.Debug.WriteLine("JSON'dan oyun yüklenemedi, embedded resource'lardan oluşturuluyor...");
-                    games = await GenerateGamesFromEmbeddedResourcesAsync();
+                    System.Diagnostics.Debug.WriteLine("JSON'dan oyun yüklenemedi, GamesIcons klasöründen oluşturuluyor...");
+                    games = await GenerateGamesFromGamesIconsAsync();
 
                     // Oluşturulan oyunları JSON'a kaydet
                     if (games != null && games.Count > 0)
@@ -141,199 +141,215 @@ namespace Yafes.Managers
         }
 
         /// <summary>
-        /// 🚀 YENİ VE GELİŞTİRİLMİŞ - Embedded resource'ları tarayarak AKILLI oyun listesi oluşturur
+        /// 🚀 COMPLETELY REWRITTEN - GamesIcons klasöründeki gerçek dosyalardan oyun listesi oluşturur
+        /// ESKİ GenerateGamesFromEmbeddedResourcesAsync TAMAMEN DEĞİŞTİRİLDİ
         /// </summary>
-        public static async Task<List<Yafes.Models.GameData>> GenerateGamesFromEmbeddedResourcesAsync()
+        public static async Task<List<Yafes.Models.GameData>> GenerateGamesFromGamesIconsAsync()
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("=== EMBEDDED RESOURCES'DAN OYUN OLUŞTURMA ===");
-
-                var assembly = Assembly.GetExecutingAssembly();
-                var resourceNames = assembly.GetManifestResourceNames();
-
-                System.Diagnostics.Debug.WriteLine($"Toplam Resource: {resourceNames.Length}");
-
-                // GamePosters klasöründeki PNG'leri bul - DÜZELTME: DOĞRU PATH
-                var gamePosterResources = resourceNames
-                    .Where(r => r.Contains("GamePosters") && r.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-                System.Diagnostics.Debug.WriteLine($"Bulunan PNG Resource: {gamePosterResources.Count}");
-
-                if (gamePosterResources.Count == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("❌ Hiç PNG resource bulunamadı!");
-                    // Alternative pattern deneyelim
-                    var allPngResources = resourceNames.Where(r => r.EndsWith(".png", StringComparison.OrdinalIgnoreCase)).ToList();
-                    System.Diagnostics.Debug.WriteLine($"Tüm PNG'ler: {allPngResources.Count}");
-                    foreach (var png in allPngResources.Take(5))
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  - {png}");
-                    }
-                }
+                System.Diagnostics.Debug.WriteLine("=== GENERATING GAMES FROM GAMESICONS FOLDER ===");
 
                 var games = new List<Yafes.Models.GameData>();
 
-                foreach (var resource in gamePosterResources)
+                // ImageManager'dan GamesIcons path'ini al
+                var cacheStats = Yafes.Managers.ImageManager.GetCacheStats();
+                var gamesIconsPath = cacheStats.gamesPath;
+
+                if (string.IsNullOrEmpty(gamesIconsPath) || gamesIconsPath == "Not Found")
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ GamesIcons path not found, using fallback");
+
+                    // Force ImageManager to initialize paths
+                    Yafes.Managers.ImageManager.GetGameImage("test");
+                    cacheStats = Yafes.Managers.ImageManager.GetCacheStats();
+                    gamesIconsPath = cacheStats.gamesPath;
+
+                    if (string.IsNullOrEmpty(gamesIconsPath) || gamesIconsPath == "Not Found")
+                    {
+                        System.Diagnostics.Debug.WriteLine("❌ Still no GamesIcons path, returning empty list");
+                        return new List<Yafes.Models.GameData>();
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"📁 Using GamesIcons path: {gamesIconsPath}");
+
+                if (!Directory.Exists(gamesIconsPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Directory does not exist: {gamesIconsPath}");
+                    return new List<Yafes.Models.GameData>();
+                }
+
+                // Supported image extensions
+                var supportedExtensions = new[] { ".png", ".jpg", ".jpeg" };
+
+                // GamesIcons klasöründeki tüm image dosyalarını al
+                var imageFiles = Directory.GetFiles(gamesIconsPath, "*.*", SearchOption.TopDirectoryOnly)
+                    .Where(f => supportedExtensions.Contains(Path.GetExtension(f).ToLower()))
+                    .ToArray();
+
+                System.Diagnostics.Debug.WriteLine($"📊 Found {imageFiles.Length} image files");
+
+                if (imageFiles.Length == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ No image files found in GamesIcons folder");
+                    return new List<Yafes.Models.GameData>();
+                }
+
+                // İlk 10 dosyayı debug için göster
+                System.Diagnostics.Debug.WriteLine("📋 Sample files:");
+                foreach (var file in imageFiles.Take(10))
+                {
+                    System.Diagnostics.Debug.WriteLine($"  - {Path.GetFileName(file)}");
+                }
+
+                foreach (var filePath in imageFiles)
                 {
                     try
                     {
-                        // Resource path'inden dosya adını çıkar
-                        var fileName = Path.GetFileName(resource);
-                        var gameId = Path.GetFileNameWithoutExtension(fileName);
+                        var fileName = Path.GetFileNameWithoutExtension(filePath);
+                        var fullFileName = Path.GetFileName(filePath);
 
-                        // 🎯 AKILLI İSİM OLUŞTURMA
-                        var gameName = ParseGameNameFromFileName(gameId);
-
-                        // 🎯 AKILLI KATEGORİ TAHMİNİ
-                        var category = GuessGameCategoryAdvanced(gameName, gameId);
-
-                        // 🎯 AKILLI BOYUT TAHMİNİ
-                        var size = EstimateGameSize(gameName, category);
+                        // Dosya adından oyun bilgilerini parse et
+                        var gameInfo = ParseGameInfoFromFileName(fileName);
 
                         var game = new Yafes.Models.GameData
                         {
-                            Id = gameId,
-                            Name = gameName,
-                            ImageName = fileName,
-                            SetupPath = $"{gameName}\\setup.exe",
-                            Category = category,
-                            Size = size,
+                            Id = GenerateUniqueGameId(fileName),
+                            Name = gameInfo.Name,
+                            ImageName = fullFileName, // Tam dosya adı (extension ile)
+                            SetupPath = $"{gameInfo.Name}\\setup.exe",
+                            Category = gameInfo.Category,
+                            Size = gameInfo.Size,
                             IsInstalled = false,
                             LastPlayed = DateTime.MinValue,
-                            Description = GenerateGameDescription(gameName, category)
+                            Description = GenerateGameDescription(gameInfo.Name, gameInfo.Category)
                         };
 
                         games.Add(game);
-                        System.Diagnostics.Debug.WriteLine($"✅ Oyun oluşturuldu: {gameName} ({category})");
+                        System.Diagnostics.Debug.WriteLine($"✅ Created game: {gameInfo.Name} -> {fullFileName}");
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"❌ Resource işleme hatası: {resource} - {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"❌ Error processing file {Path.GetFileName(filePath)}: {ex.Message}");
                     }
                 }
 
                 // Alfabetik sırala
                 games = games.OrderBy(g => g.Name).ToList();
 
-                System.Diagnostics.Debug.WriteLine($"=== TOPLAM {games.Count} OYUN OLUŞTURULDU ===");
+                System.Diagnostics.Debug.WriteLine($"=== TOPLAM {games.Count} OYUN OLUŞTURULDU (FROM REAL FILES) ===");
                 return games;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"❌ GenerateGamesFromEmbeddedResourcesAsync Hatası: {ex.Message}");
-                ErrorOccurred?.Invoke($"Otomatik oyun listesi oluşturulurken hata: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ GenerateGamesFromGamesIconsAsync Hatası: {ex.Message}");
+                ErrorOccurred?.Invoke($"GamesIcons'tan oyun listesi oluşturulurken hata: {ex.Message}");
                 return new List<Yafes.Models.GameData>();
             }
         }
 
         /// <summary>
-        /// 🎯 SÜPER AKILLI - Dosya adından oyun ismini parse eder
+        /// 🎯 SMART PARSING - Dosya adından oyun bilgilerini çıkarır
+        /// Örnek: "age_of_darkness_final_stand_FG_5.1GB.png" -> Name, Size, Category
         /// </summary>
-        private static string ParseGameNameFromFileName(string fileName)
+        private static (string Name, string Size, string Category) ParseGameInfoFromFileName(string fileName)
         {
-            if (string.IsNullOrWhiteSpace(fileName))
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🔍 Parsing: {fileName}");
+
+                // Size extraction - _FG_X.XGB or _X.XGB pattern
+                string extractedSize = "Unknown";
+                string cleanFileName = fileName;
+
+                var sizeMatch = System.Text.RegularExpressions.Regex.Match(fileName, @"_(?:FG_)?(\d+(?:\.\d+)?GB)(?:\.png)?$",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                if (sizeMatch.Success)
+                {
+                    extractedSize = sizeMatch.Groups[1].Value;
+                    // Remove size part from filename
+                    cleanFileName = fileName.Substring(0, sizeMatch.Index);
+                    System.Diagnostics.Debug.WriteLine($"📏 Extracted size: {extractedSize}");
+                }
+
+                // Clean game name
+                var gameName = ParseGameNameFromCleanFileName(cleanFileName);
+
+                // Guess category
+                var category = GuessGameCategoryAdvanced(gameName, cleanFileName);
+
+                System.Diagnostics.Debug.WriteLine($"✅ Parsed: '{gameName}' | Size: {extractedSize} | Category: {category}");
+
+                return (gameName, extractedSize, category);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ ParseGameInfoFromFileName error: {ex.Message}");
+                return (fileName.Replace("_", " "), "Unknown", "General");
+            }
+        }
+
+        /// <summary>
+        /// 🎯 IMPROVED NAME PARSING - Temizlenmiş dosya adından oyun ismini oluşturur
+        /// </summary>
+        private static string ParseGameNameFromCleanFileName(string cleanFileName)
+        {
+            if (string.IsNullOrWhiteSpace(cleanFileName))
                 return "Unknown Game";
 
             try
             {
-                // Özel durumlar için dictionary
-                var specialCases = new Dictionary<string, string>
+                // Özel durumlar için dictionary - REAL FILE NAMES BASED
+                var specialCases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    // Roman rakamları düzeltmeleri
-                    { "age_of_empires_ıv", "Age of Empires IV" },
+                    // Age of Empires series
                     { "age_of_empires_ıı", "Age of Empires II" },
                     { "age_of_empires_ııı", "Age of Empires III" },
-                    { "cities_skylines_ıı", "Cities: Skylines II" },
-                    { "sid_meiers_civilization_vı", "Sid Meier's Civilization VI" },
-                    { "total_war_warhammer_ıı", "Total War: Warhammer II" },
-                    { "the_last_of_us_part_ı", "The Last of Us Part I" },
-                    { "the_last_of_us_part_ıı_remastered", "The Last of Us Part II Remastered" },
+                    { "age_of_empires_ıv", "Age of Empires IV" },
+                    { "age_of_darkness_final_stand", "Age of Darkness: Final Stand" },
                     
-                    // Özel isimler
+                    // Assassin's Creed series
                     { "assassin_s_creed_mirage", "Assassin's Creed Mirage" },
                     { "assassin_s_creed_odyssey", "Assassin's Creed Odyssey" },
-                    { "assassin_s_creed_ıv_black_flag", "Assassin's Creed IV: Black Flag" },
+                    { "assassin_s_creed_valhalla", "Assassin's Creed Valhalla" },
+                    
+                    // Call of Duty series
                     { "call_of_duty_ghosts", "Call of Duty: Ghosts" },
                     { "call_of_duty_wwıı", "Call of Duty: WWII" },
+                    { "call_of_duty_modern_warfare", "Call of Duty: Modern Warfare" },
+                    
+                    // Grand Theft Auto series
                     { "grand_theft_auto_v", "Grand Theft Auto V" },
                     { "gta_trilogy", "GTA: Trilogy" },
-                    { "gta_vice_city_nextgen", "GTA: Vice City NextGen" },
+                    { "gta_vice_city", "GTA: Vice City" },
+                    
+                    // Other popular games
                     { "red_dead_redemption_2", "Red Dead Redemption 2" },
-                    { "cyberpunk", "Cyberpunk 2077" },
-                    { "codex_doom_eternal", "DOOM Eternal" },
-                    { "half_life_2", "Half-Life 2" },
-                    { "half_life_alyx", "Half-Life: Alyx" },
-                    { "left_4_dead_2", "Left 4 Dead 2" },
-                    { "counter_strike_2", "Counter-Strike 2" },
-                    { "the_witcher_3_ce", "The Witcher 3: Complete Edition" },
+                    { "cyberpunk_2077", "Cyberpunk 2077" },
+                    { "the_witcher_3", "The Witcher 3" },
                     { "god_of_war", "God of War" },
-                    { "god_of_war_ragnarok", "God of War Ragnarök" },
-                    { "spider_man_remastered", "Spider-Man Remastered" },
-                    { "spider_man_miles_morales", "Spider-Man: Miles Morales" },
-                    { "horizon_forbidden_west_ce", "Horizon Forbidden West: Complete Edition" },
-                    { "ghost_of_tsushima_dc", "Ghost of Tsushima: Director's Cut" },
-                    { "death_strandıng_dırectors", "Death Stranding: Director's Cut" },
-                    { "final_fantasy_vıı_rebirth", "Final Fantasy VII Rebirth" },
-                    { "crısıs_core_ff7_reunıon", "Crisis Core: Final Fantasy VII Reunion" },
-                    { "tekken_7", "Tekken 7" },
-                    { "tekken_8", "Tekken 8" },
-                    { "resident_evil_2", "Resident Evil 2" },
-                    { "resident_evil_3", "Resident Evil 3" },
-                    { "resident_evil_4_hd_project", "Resident Evil 4: HD Project" },
-                    { "resident_evil_7_biohazard", "Resident Evil 7: Biohazard" },
-                    { "resident_evil_village", "Resident Evil Village" },
-                    { "silent_hill_2_remake", "Silent Hill 2 Remake" },
-                    { "need_for_speed_heat", "Need for Speed: Heat" },
-                    { "need_for_speed_most_wanted", "Need for Speed: Most Wanted" },
-                    { "nfs_hot_pursuit_remastered", "Need for Speed: Hot Pursuit Remastered" },
-                    { "forza_horizon_5", "Forza Horizon 5" },
-                    { "fıfa_23", "FIFA 23" },
-                    { "the_sims_4", "The Sims 4" },
-                    { "star_wars_jedi_survivor", "Star Wars Jedi: Survivor" },
-                    { "elden_rıng", "Elden Ring" },
-                    { "baldur_s_gate_3", "Baldur's Gate 3" },
-                    { "hogwarts_legacy", "Hogwarts Legacy" },
-                    { "sekiro_shadows_die_twice", "Sekiro: Shadows Die Twice" },
-                    { "metal_gear_solid_v_tpp", "Metal Gear Solid V: The Phantom Pain" },
-                    { "monster_hunter_world_ıceborne", "Monster Hunter World: Iceborne" },
-                    { "monster_hunter_rise", "Monster Hunter Rise" },
-                    { "palworld", "Palworld" },
-                    { "starfield", "Starfield" },
-                    { "atomic_heart", "Atomic Heart" },
-                    { "lies_of_p", "Lies of P" },
-                    { "sıfu", "Sifu" },
-                    { "control", "Control" },
-                    { "prey", "Prey" },
-                    { "dishonored_collection", "Dishonored Collection" },
-                    { "deathloop", "Deathloop" },
-                    { "it_takes_two", "It Takes Two" },
-                    { "a_way_out", "A Way Out" },
-                    { "uncharted_lotc", "Uncharted: Legacy of Thieves Collection" },
-                    { "the_legend_of_zelda_totk", "The Legend of Zelda: Tears of the Kingdom" },
-                    { "super_mario_bros_wonder", "Super Mario Bros. Wonder" }
+                    { "spider_man", "Spider-Man" },
+                    { "horizon_forbidden_west", "Horizon Forbidden West" },
+                    { "elden_ring", "Elden Ring" }
                 };
 
                 // Özel durumları kontrol et
-                var lowerFileName = fileName.ToLower();
-                if (specialCases.ContainsKey(lowerFileName))
+                if (specialCases.ContainsKey(cleanFileName))
                 {
-                    return specialCases[lowerFileName];
+                    return specialCases[cleanFileName];
                 }
 
-                // Genel parsing
-                var formatted = fileName.Replace("_", " ");
-
-                // Kelimelerin ilk harflerini büyük yap
-                var words = formatted.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                // Genel parsing - underscore'ları space'e çevir ve title case yap
+                var words = cleanFileName.Split('_', StringSplitOptions.RemoveEmptyEntries);
                 var result = new List<string>();
 
                 foreach (var word in words)
                 {
                     if (word.Length > 0)
                     {
-                        // Küçük bağlaçları küçük bırak (of, the, and, vb.)
+                        // Küçük bağlaçları küçük bırak
                         if (word.ToLower() == "of" || word.ToLower() == "the" ||
                             word.ToLower() == "and" || word.ToLower() == "in" ||
                             word.ToLower() == "a" || word.ToLower() == "an")
@@ -342,8 +358,17 @@ namespace Yafes.Managers
                         }
                         else
                         {
-                            // Normal kelime - ilk harf büyük
-                            result.Add(char.ToUpper(word[0]) + word.Substring(1).ToLower());
+                            // Roman rakamları özel olarak işle
+                            if (word.ToLower() == "ıı") result.Add("II");
+                            else if (word.ToLower() == "ııı") result.Add("III");
+                            else if (word.ToLower() == "ıv") result.Add("IV");
+                            else if (word.ToLower() == "v") result.Add("V");
+                            else if (word.ToLower() == "vı") result.Add("VI");
+                            else
+                            {
+                                // Normal kelime - ilk harf büyük
+                                result.Add(char.ToUpper(word[0]) + word.Substring(1).ToLower());
+                            }
                         }
                     }
                 }
@@ -361,8 +386,36 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ParseGameNameFromFileName Hatası: {ex.Message}");
-                return fileName.Replace("_", " ");
+                System.Diagnostics.Debug.WriteLine($"ParseGameNameFromCleanFileName Hatası: {ex.Message}");
+                return cleanFileName.Replace("_", " ");
+            }
+        }
+
+        /// <summary>
+        /// 🆔 UNIQUE ID GENERATION - Dosya adından benzersiz ID oluşturur
+        /// </summary>
+        private static string GenerateUniqueGameId(string fileName)
+        {
+            try
+            {
+                // Basit: dosya adını ID olarak kullan, özel karakterleri temizle
+                var cleanId = fileName.ToLower()
+                    .Replace(" ", "_")
+                    .Replace(":", "")
+                    .Replace("'", "")
+                    .Replace("-", "_");
+
+                // Maksimum uzunluk sınırı
+                if (cleanId.Length > 50)
+                {
+                    cleanId = cleanId.Substring(0, 50);
+                }
+
+                return cleanId;
+            }
+            catch
+            {
+                return Guid.NewGuid().ToString("N")[..16]; // Fallback unique ID
             }
         }
 
@@ -438,36 +491,6 @@ namespace Yafes.Managers
                 return "Puzzle";
 
             return "General";
-        }
-
-        /// <summary>
-        /// 🎯 YENİ - Oyun boyutunu tahmin et
-        /// </summary>
-        private static string EstimateGameSize(string gameName, string category)
-        {
-            var name = gameName.ToLower();
-
-            // Büyük AAA oyunları
-            if (name.Contains("call of duty") || name.Contains("battlefield") ||
-                name.Contains("gta") || name.Contains("red dead") ||
-                name.Contains("cyberpunk") || name.Contains("witcher 3") ||
-                name.Contains("horizon") || name.Contains("god of war"))
-                return "80-150 GB";
-
-            // Orta boyut oyunları
-            if (category == "FPS" || category == "Action" || category == "RPG")
-                return "25-60 GB";
-
-            // Strategy oyunları genelde küçük
-            if (category == "Strategy" || category == "Simulation")
-                return "5-20 GB";
-
-            // İndie/küçük oyunlar
-            if (category == "Puzzle" || name.Contains("indie"))
-                return "1-5 GB";
-
-            // Varsayılan
-            return "15-40 GB";
         }
 
         /// <summary>
