@@ -15,7 +15,7 @@ namespace Yafes.Managers
 {
     /// <summary>
     /// Games Panel yönetimi - XAML Storyboard entegrasyonlu
-    /// Terminal ve Progress Bar animasyonları XAML'den çalıştırılıyor
+    /// V3 Final: Window Height Animation + Clean Code
     /// </summary>
     public class GamesPanelManager
     {
@@ -23,13 +23,26 @@ namespace Yafes.Managers
         private readonly TextBox _logTextBox;
         private bool _isGamesVisible = false;
 
-        // Slide Animation için gerekli referanslar
+        // Sol Sidebar Animation
         private Border _leftSidebar;
         private TranslateTransform _leftSidebarTransform;
         private const double SIDEBAR_SLIDE_DISTANCE = -280;
         private const double ANIMATION_DURATION = 600;
 
-        // XAML Storyboard referansları
+        // Progress Bar Animation
+        private Border _progressBarContainer;
+        private TranslateTransform _progressBarTransform;
+        private const double PROGRESSBAR_SLIDE_DISTANCE = 800;
+        private const double PROGRESSBAR_ANIMATION_DURATION = 800;
+
+        // Window Height Animation
+        private double _originalWindowHeight;
+        private double _progressBarHeight = 0;
+        private bool _isWindowCompact = false;
+        private const double WINDOW_HEIGHT_DURATION = 700;
+        private Canvas _mainCanvas;
+
+        // XAML Storyboards
         private Storyboard _terminalSlideOut;
         private Storyboard _terminalSlideIn;
         private Storyboard _progressBarSlideOut;
@@ -51,85 +64,137 @@ namespace Yafes.Managers
             };
 
             InitializeSidebarElements();
+            InitializeProgressBarElements();
+            InitializeWindowHeightAnimation();
             InitializeStoryboards();
         }
 
         public bool IsGamesVisible => _isGamesVisible;
 
-        /// <summary>
-        /// XAML Storyboard'ları initialize eder
-        /// </summary>
+        private void InitializeWindowHeightAnimation()
+        {
+            try
+            {
+                _originalWindowHeight = _parentWindow.Height;
+                _mainCanvas = FindElementByName<Canvas>(_parentWindow, "MainCanvas");
+                CalculateProgressBarHeight();
+            }
+            catch (Exception ex)
+            {
+                // Silent error handling
+            }
+        }
+
+        private void CalculateProgressBarHeight()
+        {
+            try
+            {
+                if (_progressBarContainer != null)
+                {
+                    _progressBarHeight = _progressBarContainer.ActualHeight;
+
+                    if (_progressBarHeight <= 0)
+                    {
+                        _progressBarHeight = _progressBarContainer.Height;
+                    }
+
+                    if (double.IsNaN(_progressBarHeight) || _progressBarHeight <= 0)
+                    {
+                        _progressBarHeight = 22; // XAML default
+                    }
+
+                    _progressBarHeight += 10;
+                    _progressBarHeight *= 2; // Double height reduction
+                }
+                else
+                {
+                    _progressBarHeight = 64; // Fallback
+                }
+            }
+            catch
+            {
+                _progressBarHeight = 64;
+            }
+        }
+
+        private async Task CompactWindowHeight()
+        {
+            try
+            {
+                if (_isWindowCompact) return;
+
+                var heightAnimation = new DoubleAnimation
+                {
+                    From = _originalWindowHeight,
+                    To = _originalWindowHeight - _progressBarHeight,
+                    Duration = TimeSpan.FromMilliseconds(WINDOW_HEIGHT_DURATION),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                };
+
+                var tcs = new TaskCompletionSource<bool>();
+                heightAnimation.Completed += (s, e) => {
+                    _isWindowCompact = true;
+                    tcs.SetResult(true);
+                };
+
+                _parentWindow.BeginAnimation(Window.HeightProperty, heightAnimation);
+                await tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                // Silent error handling
+            }
+        }
+
+        private async Task ExpandWindowHeight()
+        {
+            try
+            {
+                if (!_isWindowCompact) return;
+
+                var heightAnimation = new DoubleAnimation
+                {
+                    From = _originalWindowHeight - _progressBarHeight,
+                    To = _originalWindowHeight,
+                    Duration = TimeSpan.FromMilliseconds(WINDOW_HEIGHT_DURATION),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                };
+
+                var tcs = new TaskCompletionSource<bool>();
+                heightAnimation.Completed += (s, e) => {
+                    _isWindowCompact = false;
+                    tcs.SetResult(true);
+                };
+
+                _parentWindow.BeginAnimation(Window.HeightProperty, heightAnimation);
+                await tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                // Silent error handling
+            }
+        }
+
         private void InitializeStoryboards()
         {
             try
             {
-                // XAML'deki Storyboard'ları bul
                 _terminalSlideOut = _parentWindow.FindResource("TerminalSlideOut") as Storyboard;
                 _terminalSlideIn = _parentWindow.FindResource("TerminalSlideIn") as Storyboard;
                 _progressBarSlideOut = _parentWindow.FindResource("ProgressBarSlideOut") as Storyboard;
                 _progressBarSlideIn = _parentWindow.FindResource("ProgressBarSlideIn") as Storyboard;
-
-                LogMessage?.Invoke($"✅ Storyboard'lar yüklendi: Terminal({_terminalSlideOut != null}), Progress({_progressBarSlideOut != null})");
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ Storyboard initialization hatası: {ex.Message}");
+                // Silent error handling
             }
         }
 
-        /// <summary>
-        /// Sol sidebar için element referanslarını başlatır
-        /// </summary>
         private void InitializeSidebarElements()
         {
             try
             {
-                string[] possibleNames = {
-                    "SystemInfoPanel", "LeftPanel", "InfoPanel", "SystemPanel",
-                    "LeftSidebar", "leftSidebar", "SidePanel"
-                };
-
-                foreach (var name in possibleNames)
-                {
-                    _leftSidebar = FindElementByName<Border>(_parentWindow, name);
-                    if (_leftSidebar != null) break;
-                }
-
-                if (_leftSidebar == null)
-                {
-                    foreach (var name in possibleNames)
-                    {
-                        var panel = FindElementByName<Grid>(_parentWindow, name);
-                        if (panel != null)
-                        {
-                            var parent = VisualTreeHelper.GetParent(panel);
-                            while (parent != null && !(parent is Border))
-                            {
-                                parent = VisualTreeHelper.GetParent(parent);
-                            }
-                            _leftSidebar = parent as Border;
-                            if (_leftSidebar != null) break;
-                        }
-                    }
-                }
-
-                if (_leftSidebar == null)
-                {
-                    foreach (var name in possibleNames)
-                    {
-                        var panel = FindElementByName<StackPanel>(_parentWindow, name);
-                        if (panel != null)
-                        {
-                            var parent = VisualTreeHelper.GetParent(panel);
-                            while (parent != null && !(parent is Border))
-                            {
-                                parent = VisualTreeHelper.GetParent(parent);
-                            }
-                            _leftSidebar = parent as Border;
-                            if (_leftSidebar != null) break;
-                        }
-                    }
-                }
+                _leftSidebar = FindElementByName<Border>(_parentWindow, "LeftSidebar");
 
                 if (_leftSidebar != null)
                 {
@@ -143,13 +208,32 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Hata durumunda sidebar devre dışı
+                // Silent error handling
             }
         }
 
-        /// <summary>
-        /// Games panel boyutunu ayarlar (tam genişlik/normal mod)
-        /// </summary>
+        private void InitializeProgressBarElements()
+        {
+            try
+            {
+                _progressBarContainer = FindElementByName<Border>(_parentWindow, "ProgressBarContainer");
+
+                if (_progressBarContainer != null)
+                {
+                    _progressBarTransform = _progressBarContainer.RenderTransform as TranslateTransform;
+                    if (_progressBarTransform == null)
+                    {
+                        _progressBarTransform = new TranslateTransform();
+                        _progressBarContainer.RenderTransform = _progressBarTransform;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Silent error handling
+            }
+        }
+
         private void ResizeGamesPanel(bool fullWidth)
         {
             try
@@ -161,7 +245,7 @@ namespace Yafes.Managers
                 {
                     gamesPanel.Width = Double.NaN;
                     gamesPanel.HorizontalAlignment = HorizontalAlignment.Stretch;
-                    gamesPanel.Margin = new Thickness(0, 0, 305, 0);
+                    gamesPanel.Margin = new Thickness(0, 0, 20, 0);
                 }
                 else
                 {
@@ -173,7 +257,18 @@ namespace Yafes.Managers
                 var gamesGrid = FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
                 if (gamesGrid != null)
                 {
-                    gamesGrid.Columns = fullWidth ? 10 : 4;
+                    if (fullWidth && IsProgressBarHidden())
+                    {
+                        gamesGrid.Columns = 12;
+                    }
+                    else if (fullWidth)
+                    {
+                        gamesGrid.Columns = 10;
+                    }
+                    else
+                    {
+                        gamesGrid.Columns = 4;
+                    }
                 }
 
                 var gamesTitlePanel = FindElementByTag<Border>(_parentWindow, "GamesTitlePanel") ??
@@ -183,7 +278,7 @@ namespace Yafes.Managers
                     if (fullWidth)
                     {
                         gamesTitlePanel.HorizontalAlignment = HorizontalAlignment.Stretch;
-                        gamesTitlePanel.Margin = new Thickness(0, 0, 305, 0);
+                        gamesTitlePanel.Margin = new Thickness(0, 0, 20, 0);
                     }
                     else
                     {
@@ -194,19 +289,117 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Hata durumunda işlem iptal
+                // Silent error handling
             }
         }
 
-        /// <summary>
-        /// Games panel toggle işlemi
-        /// </summary>
+        private async Task SlideProgressBarOut()
+        {
+            try
+            {
+                if (_progressBarContainer == null || _progressBarTransform == null) return;
+
+                var slideAnimation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = PROGRESSBAR_SLIDE_DISTANCE,
+                    Duration = TimeSpan.FromMilliseconds(PROGRESSBAR_ANIMATION_DURATION),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+                };
+
+                var tcs = new TaskCompletionSource<bool>();
+                slideAnimation.Completed += async (s, e) => {
+                    _progressBarContainer.Visibility = Visibility.Collapsed;
+                    await CompactWindowHeight();
+                    tcs.SetResult(true);
+                };
+
+                _progressBarTransform.BeginAnimation(TranslateTransform.XProperty, slideAnimation);
+                await tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                // Silent error handling
+            }
+        }
+
+        private async Task SlideProgressBarIn()
+        {
+            try
+            {
+                if (_progressBarContainer == null || _progressBarTransform == null) return;
+
+                await ExpandWindowHeight();
+
+                _progressBarContainer.Visibility = Visibility.Visible;
+                _progressBarTransform.X = PROGRESSBAR_SLIDE_DISTANCE;
+
+                var slideAnimation = new DoubleAnimation
+                {
+                    From = PROGRESSBAR_SLIDE_DISTANCE,
+                    To = 0,
+                    Duration = TimeSpan.FromMilliseconds(PROGRESSBAR_ANIMATION_DURATION),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                };
+
+                var tcs = new TaskCompletionSource<bool>();
+                slideAnimation.Completed += (s, e) => {
+                    tcs.SetResult(true);
+                };
+
+                _progressBarTransform.BeginAnimation(TranslateTransform.XProperty, slideAnimation);
+                await tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                // Silent error handling
+            }
+        }
+
+        public bool IsProgressBarHidden()
+        {
+            try
+            {
+                if (_progressBarContainer == null) return false;
+                return _progressBarContainer.Visibility == Visibility.Collapsed ||
+                       (_progressBarTransform != null && _progressBarTransform.X > 600);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public bool IsWindowCompact()
+        {
+            return _isWindowCompact;
+        }
+
+        public async Task<bool> ToggleProgressBar()
+        {
+            try
+            {
+                if (!IsProgressBarHidden())
+                {
+                    await SlideProgressBarOut();
+                    return true;
+                }
+                else
+                {
+                    await SlideProgressBarIn();
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
         public async Task<bool> ToggleGamesPanel()
         {
             try
             {
-                LogMessage?.Invoke($"🎮 Games toggle - Mevcut durum: {(_isGamesVisible ? "AÇIK" : "KAPALI")}");
-
                 if (!_isGamesVisible)
                 {
                     bool success = await ShowGamesPanel();
@@ -214,13 +407,14 @@ namespace Yafes.Managers
                     {
                         _isGamesVisible = true;
                         await SlideSidebarOut();
+                        await SlideProgressBarOut();
                     }
                     return success;
                 }
                 else
                 {
-                    LogMessage?.Invoke("🔄 Games panel kapatılıyor...");
                     await SlideSidebarIn();
+                    await SlideProgressBarIn();
                     bool success = await HideGamesPanel();
                     if (success)
                     {
@@ -231,21 +425,15 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ ToggleGamesPanel hatası: {ex.Message}");
                 return false;
             }
         }
 
-        /// <summary>
-        /// Sol sidebar'ı sola kaydırarak gizler
-        /// </summary>
         private async Task SlideSidebarOut()
         {
             try
             {
                 if (_leftSidebar == null || _leftSidebarTransform == null) return;
-
-                LogMessage?.Invoke("⬅️ Sol sidebar gizleniyor...");
 
                 var slideAnimation = new DoubleAnimation
                 {
@@ -257,7 +445,6 @@ namespace Yafes.Managers
 
                 var tcs = new TaskCompletionSource<bool>();
                 slideAnimation.Completed += (s, e) => {
-                    LogMessage?.Invoke("✅ Sol sidebar gizlendi");
                     tcs.SetResult(true);
                 };
 
@@ -266,20 +453,15 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ Sidebar slide out hatası: {ex.Message}");
+                // Silent error handling
             }
         }
 
-        /// <summary>
-        /// Sol sidebar'ı normal pozisyona geri getirir
-        /// </summary>
         private async Task SlideSidebarIn()
         {
             try
             {
                 if (_leftSidebar == null || _leftSidebarTransform == null) return;
-
-                LogMessage?.Invoke("➡️ Sol sidebar geri getiriliyor...");
 
                 var slideAnimation = new DoubleAnimation
                 {
@@ -291,7 +473,6 @@ namespace Yafes.Managers
 
                 var tcs = new TaskCompletionSource<bool>();
                 slideAnimation.Completed += (s, e) => {
-                    LogMessage?.Invoke("✅ Sol sidebar normal pozisyonda");
                     tcs.SetResult(true);
                 };
 
@@ -300,42 +481,30 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ Sidebar slide in hatası: {ex.Message}");
+                // Silent error handling
             }
         }
 
-        /// <summary>
-        /// Games panelini gösterir - XAML Storyboard kullanır
-        /// </summary>
         private async Task<bool> ShowGamesPanel()
         {
             try
             {
-                LogMessage?.Invoke("🎮 Games panel açılıyor...");
-
                 var gamesPanel = FindElementByTag<Border>(_parentWindow, "GamesPanel");
                 var terminalPanel = FindElementByTag<Border>(_parentWindow, "TerminalPanel");
 
                 if (gamesPanel == null || terminalPanel == null)
                 {
-                    LogMessage?.Invoke("❌ Panel'ler bulunamadı");
                     return false;
                 }
 
-                // 1. Games panel'i göster ve boyutlandır
                 ResizeGamesPanel(true);
                 gamesPanel.Visibility = Visibility.Visible;
-                LogMessage?.Invoke("✅ Games panel görünür yapıldı");
 
-                // 2. Terminal'i XAML storyboard ile gizle
                 if (_terminalSlideOut != null)
                 {
-                    LogMessage?.Invoke("🎬 Terminal slide out animasyonu başlatılıyor...");
-
                     var tcs = new TaskCompletionSource<bool>();
                     _terminalSlideOut.Completed += (s, e) => {
                         terminalPanel.Visibility = Visibility.Collapsed;
-                        LogMessage?.Invoke("✅ Terminal gizlendi");
                         tcs.SetResult(true);
                     };
 
@@ -344,20 +513,15 @@ namespace Yafes.Managers
                 }
                 else
                 {
-                    LogMessage?.Invoke("⚠️ Terminal storyboard bulunamadı, direkt gizleniyor");
                     terminalPanel.Visibility = Visibility.Collapsed;
                 }
 
-                // 3. Progress bar'ı XAML storyboard ile gizle
                 if (_progressBarSlideOut != null)
                 {
-                    LogMessage?.Invoke("🎬 Progress bar slide out animasyonu başlatılıyor...");
-
                     var progressContainer = FindElementByName<Border>(_parentWindow, "ProgressBarContainer");
                     var tcs2 = new TaskCompletionSource<bool>();
                     _progressBarSlideOut.Completed += (s, e) => {
                         if (progressContainer != null) progressContainer.Visibility = Visibility.Collapsed;
-                        LogMessage?.Invoke("✅ Progress bar gizlendi");
                         tcs2.SetResult(true);
                     };
 
@@ -365,61 +529,46 @@ namespace Yafes.Managers
                     await tcs2.Task;
                 }
 
-                // 4. Kategori listesini gizle
                 var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
                 if (lstDrivers != null)
                 {
                     lstDrivers.Visibility = Visibility.Collapsed;
                 }
 
-                // 5. Oyun verilerini yükle
+                // Küçük gecikme ile layout'un tamamlanmasını bekle
+                await Task.Delay(100);
                 await LoadGamesIntoPanel(gamesPanel);
 
-                LogMessage?.Invoke("✅ Games panel tamamen açıldı!");
                 return true;
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ ShowGamesPanel hatası: {ex.Message}");
                 return false;
             }
         }
 
-        /// <summary>
-        /// Games panelini gizler - XAML Storyboard kullanır
-        /// </summary>
         private async Task<bool> HideGamesPanel()
         {
             try
             {
-                LogMessage?.Invoke("🔄 Games panel gizleniyor...");
-
                 var gamesPanel = FindElementByTag<Border>(_parentWindow, "GamesPanel");
                 var terminalPanel = FindElementByTag<Border>(_parentWindow, "TerminalPanel");
 
                 if (gamesPanel == null || terminalPanel == null)
                 {
-                    LogMessage?.Invoke("❌ Panel'ler bulunamadı");
                     return false;
                 }
 
-                // 1. Games panel boyutunu normale döndür ve gizle
                 ResizeGamesPanel(false);
                 gamesPanel.Visibility = Visibility.Collapsed;
-                LogMessage?.Invoke("✅ Games panel gizlendi");
 
-                // 2. Terminal'i XAML storyboard ile geri getir
                 if (_terminalSlideIn != null)
                 {
-                    LogMessage?.Invoke("🎬 Terminal slide in animasyonu başlatılıyor...");
-
-                    // Önce terminal'i görünür yap
                     terminalPanel.Visibility = Visibility.Visible;
-                    terminalPanel.Opacity = 0; // Başlangıçta görünmez
+                    terminalPanel.Opacity = 0;
 
                     var tcs = new TaskCompletionSource<bool>();
                     _terminalSlideIn.Completed += (s, e) => {
-                        LogMessage?.Invoke("✅ Terminal geri geldi");
                         tcs.SetResult(true);
                     };
 
@@ -428,11 +577,9 @@ namespace Yafes.Managers
                 }
                 else
                 {
-                    LogMessage?.Invoke("⚠️ Terminal storyboard bulunamadı, direkt gösteriliyor");
                     terminalPanel.Visibility = Visibility.Visible;
                     terminalPanel.Opacity = 1;
 
-                    // Transform'u sıfırla
                     var terminalTransform = terminalPanel.RenderTransform as TranslateTransform;
                     if (terminalTransform != null)
                     {
@@ -440,52 +587,38 @@ namespace Yafes.Managers
                     }
                 }
 
-                // 3. Progress bar'ı XAML storyboard ile geri getir
                 if (_progressBarSlideIn != null)
                 {
-                    LogMessage?.Invoke("🎬 Progress bar slide in animasyonu başlatılıyor...");
-
                     var progressContainer = FindElementByName<Border>(_parentWindow, "ProgressBarContainer");
                     if (progressContainer != null)
                     {
                         progressContainer.Visibility = Visibility.Visible;
-                        progressContainer.Opacity = 0; // Başlangıçta görünmez
+                        progressContainer.Opacity = 0;
                     }
 
                     var tcs2 = new TaskCompletionSource<bool>();
                     _progressBarSlideIn.Completed += (s, e) => {
-                        LogMessage?.Invoke("✅ Progress bar geri geldi");
                         tcs2.SetResult(true);
                     };
 
                     _progressBarSlideIn.Begin();
                     await tcs2.Task;
                 }
-                else
-                {
-                    LogMessage?.Invoke("⚠️ Progress bar storyboard bulunamadı");
-                }
 
-                // 4. Kategori listesini geri göster
                 var lstDrivers = FindElementByName<ListBox>(_parentWindow, "lstDrivers");
                 if (lstDrivers != null)
                 {
                     lstDrivers.Visibility = Visibility.Visible;
                 }
 
-                LogMessage?.Invoke("✅ Games panel kapatıldı, tüm elementler geri geldi!");
                 return true;
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ HideGamesPanel hatası: {ex.Message}");
                 return false;
             }
         }
 
-        /// <summary>
-        /// Oyun verilerini panel'e yükler
-        /// </summary>
         private async Task LoadGamesIntoPanel(Border gamesPanel)
         {
             try
@@ -494,6 +627,9 @@ namespace Yafes.Managers
                 if (gamesGrid == null) return;
 
                 gamesGrid.Children.Clear();
+
+                // Layout update için kısa bekleme
+                await Task.Delay(50);
 
                 if (_leftSidebar != null && _leftSidebarTransform != null && _leftSidebarTransform.X < -200)
                 {
@@ -514,12 +650,15 @@ namespace Yafes.Managers
 
                 foreach (var game in games.Take(40))
                 {
-                    var gameCard = CreateGameCard(game);
+                    var gameCard = await CreateGameCard(game);
                     if (gameCard != null)
                     {
                         gamesGrid.Children.Add(gameCard);
                     }
                 }
+
+                // Final layout update
+                gamesGrid.UpdateLayout();
             }
             catch (Exception ex)
             {
@@ -531,10 +670,7 @@ namespace Yafes.Managers
             }
         }
 
-        /// <summary>
-        /// Gerçek oyun verisinden oyun kartı oluşturur
-        /// </summary>
-        private Border CreateGameCard(Yafes.Models.GameData game)
+        private async Task<Border> CreateGameCard(Yafes.Models.GameData game)
         {
             try
             {
@@ -577,7 +713,15 @@ namespace Yafes.Managers
                         };
 
                         var imageName = Path.GetFileNameWithoutExtension(game.ImageName);
-                        var bitmapImage = Yafes.Managers.ImageManager.GetGameImage(imageName);
+
+                        // ImageManager'ın hazır olmasını kontrol et
+                        BitmapImage bitmapImage = null;
+                        for (int retry = 0; retry < 3; retry++)
+                        {
+                            bitmapImage = Yafes.Managers.ImageManager.GetGameImage(imageName);
+                            if (bitmapImage != null) break;
+                            await Task.Delay(10); // Kısa retry delay
+                        }
 
                         if (bitmapImage != null)
                         {
@@ -599,7 +743,6 @@ namespace Yafes.Managers
                     AddCategoryIcon(stackPanel, game.Category);
                 }
 
-                // Oyun ismi
                 var gameNameText = new TextBlock
                 {
                     Text = game.Name,
@@ -619,7 +762,6 @@ namespace Yafes.Managers
                     }
                 };
 
-                // Boyut bilgisi
                 var gameSizeText = new TextBlock
                 {
                     Text = game.Size,
@@ -629,7 +771,6 @@ namespace Yafes.Managers
                     Margin = new Thickness(0, 2, 0, 0)
                 };
 
-                // Kategori bilgisi
                 var gameCategoryText = new TextBlock
                 {
                     Text = game.Category,
@@ -658,9 +799,6 @@ namespace Yafes.Managers
             }
         }
 
-        /// <summary>
-        /// Kategori ikonunu ekler (afiş bulunamazsa)
-        /// </summary>
         private void AddCategoryIcon(StackPanel stackPanel, string category)
         {
             var categoryIcon = GetCategoryIcon(category);
@@ -674,9 +812,6 @@ namespace Yafes.Managers
             stackPanel.Children.Add(iconText);
         }
 
-        /// <summary>
-        /// Kategori ikonunu döndürür
-        /// </summary>
         private string GetCategoryIcon(string category)
         {
             return category?.ToLower() switch
@@ -694,9 +829,6 @@ namespace Yafes.Managers
             };
         }
 
-        /// <summary>
-        /// Varsayılan oyun kartları oluşturur (fallback)
-        /// </summary>
         private void CreateDefaultGameCards(UniformGrid gamesGrid)
         {
             try
@@ -724,13 +856,10 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Hata durumunda sessiz devam
+                // Silent error handling
             }
         }
 
-        /// <summary>
-        /// Varsayılan oyun kartı oluşturur
-        /// </summary>
         private Border CreateDefaultGameCard(string name, string icon, string size, string category)
         {
             try
@@ -758,7 +887,6 @@ namespace Yafes.Managers
                     VerticalAlignment = VerticalAlignment.Center
                 };
 
-                // İkon
                 stackPanel.Children.Add(new TextBlock
                 {
                     Text = icon,
@@ -767,7 +895,6 @@ namespace Yafes.Managers
                     Margin = new Thickness(0, 0, 0, 5)
                 });
 
-                // İsim
                 stackPanel.Children.Add(new TextBlock
                 {
                     Text = name,
@@ -784,7 +911,6 @@ namespace Yafes.Managers
                     }
                 });
 
-                // Boyut
                 stackPanel.Children.Add(new TextBlock
                 {
                     Text = size,
@@ -807,9 +933,6 @@ namespace Yafes.Managers
             }
         }
 
-        /// <summary>
-        /// Game Card hover enter event
-        /// </summary>
         private void GameCard_MouseEnter(object sender, MouseEventArgs e)
         {
             try
@@ -832,13 +955,10 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Hata durumunda sessiz devam
+                // Silent error handling
             }
         }
 
-        /// <summary>
-        /// Game Card hover leave event
-        /// </summary>
         private void GameCard_MouseLeave(object sender, MouseEventArgs e)
         {
             try
@@ -860,13 +980,10 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Hata durumunda sessiz devam
+                // Silent error handling
             }
         }
 
-        /// <summary>
-        /// Game Card click event
-        /// </summary>
         private void GameCard_Click(object sender, MouseButtonEventArgs e)
         {
             try
@@ -879,8 +996,6 @@ namespace Yafes.Managers
                     {
                         gameName = gameData.Name;
                         LogMessage?.Invoke($"🎯 {gameName} kurulum kuyruğuna eklendi!");
-                        // TODO: Gerçek kurulum kuyruğuna ekleme işlemi
-                        // queueManager.AddGameToQueue(gameData);
                     }
                     else
                     {
@@ -897,13 +1012,10 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Hata durumunda sessiz devam
+                // Silent error handling
             }
         }
 
-        /// <summary>
-        /// Kart titreşim efekti
-        /// </summary>
         private void CreateShakeEffect(Border card)
         {
             try
@@ -923,15 +1035,10 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                // Hata durumunda sessiz devam
+                // Silent error handling
             }
         }
 
-        // ============ UTILITY METODLAR ============
-
-        /// <summary>
-        /// Tag ile element bulur
-        /// </summary>
         private T FindElementByTag<T>(DependencyObject parent, string tag) where T : FrameworkElement
         {
             if (parent == null) return null;
@@ -950,9 +1057,6 @@ namespace Yafes.Managers
             return null;
         }
 
-        /// <summary>
-        /// Name ile element bulur
-        /// </summary>
         private T FindElementByName<T>(DependencyObject parent, string name) where T : FrameworkElement
         {
             if (parent == null) return null;
@@ -971,22 +1075,23 @@ namespace Yafes.Managers
             return null;
         }
 
-        /// <summary>
-        /// Acil durum reset - Tüm animasyonları ve layout'u sıfırlar
-        /// </summary>
         public void ForceReset()
         {
             try
             {
-                LogMessage?.Invoke("🚨 Force reset yapılıyor...");
-
-                // Sidebar'ı normal pozisyona getir
                 if (_leftSidebarTransform != null)
                 {
                     _leftSidebarTransform.X = 0;
                 }
 
-                // Games panel'i gizle
+                if (_progressBarTransform != null)
+                {
+                    _progressBarTransform.X = 0;
+                }
+
+                _parentWindow.Height = _originalWindowHeight;
+                _isWindowCompact = false;
+
                 var gamesPanel = FindElementByTag<Border>(_parentWindow, "GamesPanel");
                 if (gamesPanel != null)
                 {
@@ -994,7 +1099,6 @@ namespace Yafes.Managers
                     gamesPanel.Opacity = 1;
                 }
 
-                // Terminal'i göster ve resetle
                 var terminalPanel = FindElementByTag<Border>(_parentWindow, "TerminalPanel");
                 if (terminalPanel != null)
                 {
@@ -1008,7 +1112,6 @@ namespace Yafes.Managers
                     }
                 }
 
-                // Progress bar'ı göster ve resetle
                 var progressContainer = FindElementByName<Border>(_parentWindow, "ProgressBarContainer");
                 if (progressContainer != null)
                 {
@@ -1023,11 +1126,10 @@ namespace Yafes.Managers
                 }
 
                 _isGamesVisible = false;
-                LogMessage?.Invoke("✅ Force reset tamamlandı");
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ ForceReset hatası: {ex.Message}");
+                // Silent error handling
             }
         }
     }
