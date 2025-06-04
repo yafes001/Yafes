@@ -53,6 +53,7 @@ namespace Yafes.Managers
 
         /// <summary>
         /// ✅ YENİ: Sol sidebar için element referanslarını başlatır
+<<<<<<< HEAD
         /// </summary>
         private void InitializeSidebarElements()
         {
@@ -1150,3 +1151,6 @@ namespace Yafes.Managers
         }
     }
 }
+=======
+        /// 
+>>>>>>> 0193895aa87a8bda8753e8df83bb4c0b9c51b14d
