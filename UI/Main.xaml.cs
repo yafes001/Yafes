@@ -585,6 +585,8 @@ namespace Yafes
 
         // ✅ Main.xaml.cs dosyasındaki CategoryButton_Click metodunu bu şekilde güncelleyin:
 
+        // Main.xaml.cs dosyasındaki CategoryButton_Click metodunu bu şekilde düzeltin:
+
         private async void CategoryButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -640,14 +642,14 @@ namespace Yafes
                     // ✅ DİĞER BUTONLAR (Programs, Drivers, Tools)
                     txtLog.AppendText($"📦 Normal kategori butonu: {clickedButton.Content}\n");
 
-                    // ✅ ENHANCED: Games açıksa kapat - ExitGamesMode kullan
+                    // ✅ ENHANCED: Games açıksa kapat - DÜZELTME: ToggleGamesPanel kullan
                     if (isGamesVisible && gamesPanelManager != null)
                     {
                         txtLog.AppendText("🔴 Games panel normal kategoriye geçiş için kapatılıyor...\n");
                         txtLog.AppendText("➡️ Sol sidebar geri getiriliyor...\n");
 
-                        // ✅ YENİ: ExitGamesMode kullan (Terminal + Progress bar + Sidebar geri gelir)
-                        bool closeSuccess = await gamesPanelManager.ExitGamesMode();
+                        // ✅ DÜZELTME: Mevcut ToggleGamesPanel metodunu kullan (Games paneli kapalıysa açar, açıksa kapatır)
+                        bool closeSuccess = await gamesPanelManager.ToggleGamesPanel();
 
                         if (closeSuccess)
                         {
@@ -704,6 +706,7 @@ namespace Yafes
                 }
             }
         }
+
 
 
         private void DebugXAMLStructure(DependencyObject parent, int depth)

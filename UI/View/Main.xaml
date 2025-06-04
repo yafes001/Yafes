@@ -10,64 +10,6 @@
         AllowsTransparency="True">
 
     <Window.Resources>
-        <!-- ✅ YENİ: XAML Animasyon Storyboard'ları -->
-
-        <!-- Terminal Slide Out (Aşağı) -->
-        <Storyboard x:Key="TerminalSlideOut">
-            <DoubleAnimation Storyboard.TargetName="TerminalTransform" 
-                           Storyboard.TargetProperty="Y"
-                           From="0" To="650" Duration="0:0:0.8">
-                <DoubleAnimation.EasingFunction>
-                    <CubicEase EasingMode="EaseInOut"/>
-                </DoubleAnimation.EasingFunction>
-            </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="TerminalPanel" 
-                           Storyboard.TargetProperty="Opacity"
-                           From="1" To="0" Duration="0:0:0.6" BeginTime="0:0:0.2"/>
-        </Storyboard>
-
-        <!-- Terminal Slide In (Yukarıdan) -->
-        <Storyboard x:Key="TerminalSlideIn">
-            <DoubleAnimation Storyboard.TargetName="TerminalTransform" 
-                           Storyboard.TargetProperty="Y"
-                           From="650" To="0" Duration="0:0:0.8">
-                <DoubleAnimation.EasingFunction>
-                    <CubicEase EasingMode="EaseInOut"/>
-                </DoubleAnimation.EasingFunction>
-            </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="TerminalPanel" 
-                           Storyboard.TargetProperty="Opacity"
-                           From="1" To="1" Duration="0:0:0.1"/>
-        </Storyboard>
-
-        <!-- Progress Bar Slide Out (Sağa) -->
-        <Storyboard x:Key="ProgressBarSlideOut">
-            <DoubleAnimation Storyboard.TargetName="ProgressBarTransform" 
-                           Storyboard.TargetProperty="X"
-                           From="0" To="900" Duration="0:0:0.7">
-                <DoubleAnimation.EasingFunction>
-                    <CubicEase EasingMode="EaseInOut"/>
-                </DoubleAnimation.EasingFunction>
-            </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="ProgressBarContainer" 
-                           Storyboard.TargetProperty="Opacity"
-                           From="1" To="0" Duration="0:0:0.5" BeginTime="0:0:0.15"/>
-        </Storyboard>
-
-        <!-- Progress Bar Slide In (Soldan) -->
-        <Storyboard x:Key="ProgressBarSlideIn">
-            <DoubleAnimation Storyboard.TargetName="ProgressBarTransform" 
-                           Storyboard.TargetProperty="X"
-                           From="900" To="0" Duration="0:0:0.7">
-                <DoubleAnimation.EasingFunction>
-                    <CubicEase EasingMode="EaseInOut"/>
-                </DoubleAnimation.EasingFunction>
-            </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="ProgressBarContainer" 
-                           Storyboard.TargetProperty="Opacity"
-                           From="1" To="1" Duration="0:0:0.1"/>
-        </Storyboard>
-
         <!-- Lambda Panel Style -->
         <Style x:Key="LambdaPanelStyle" TargetType="Border">
             <Setter Property="Background">
@@ -649,12 +591,9 @@
             </Canvas>
         </Border>
 
-        <!-- Left Sidebar - ANİMASYONLU SLIDE -->
+        <!-- Left Sidebar -->
         <Border x:Name="LeftSidebar" Canvas.Left="8" Canvas.Top="76" Width="250" Height="626" 
                 Style="{StaticResource LambdaPanelStyle}">
-            <Border.RenderTransform>
-                <TranslateTransform x:Name="LeftSidebarTransform" X="0"/>
-            </Border.RenderTransform>
             <Canvas Margin="15">
                 <!-- System Info Section -->
                 <Border Canvas.Left="0" Canvas.Top="0" Width="220" Height="120" 
@@ -738,9 +677,6 @@
         <Border x:Name="TerminalPanel" Canvas.Left="266" Canvas.Top="76" Width="616" Height="596" 
                 Style="{StaticResource LambdaPanelStyle}"
                 Tag="TerminalPanel">
-            <Border.RenderTransform>
-                <TranslateTransform x:Name="TerminalTransform" Y="0"/>
-            </Border.RenderTransform>
             <Canvas>
                 <!-- Terminal Header -->
                 <Border Canvas.Left="0" Canvas.Top="0" Width="616" Height="28" 
@@ -767,16 +703,13 @@
             </Canvas>
         </Border>
 
-        <!-- ✅ YENİ GAMES PANEL - SOL TARAFA GENİŞLETİLMİŞ + LOG ALANINI DA KAPLAR -->
+        <!-- Games Panel -->
         <Border x:Name="GamesPanel" Canvas.Left="8" Canvas.Top="76" Width="874" Height="596" 
                 Style="{StaticResource LambdaPanelStyle}"
                 Visibility="Collapsed"
                 Tag="GamesPanel">
-            <Border.RenderTransform>
-                <TranslateTransform x:Name="GamesPanelTransform" Y="-50"/>
-            </Border.RenderTransform>
             <Canvas>
-                <!-- Games Header - GENİŞLETİLMİŞ -->
+                <!-- Games Header -->
                 <Border Canvas.Left="0" Canvas.Top="0" Width="874" Height="28" 
                         BorderThickness="0,0,0,1" BorderBrush="#FFA500">
                     <Border.Background>
@@ -790,10 +723,9 @@
                               FontSize="14" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0,0,0"/>
                 </Border>
 
-                <!-- Games Content Grid - GENİŞLETİLMİŞ VE YÜKSELTİLMİŞ -->
+                <!-- Games Content Grid -->
                 <ScrollViewer x:Name="gamesScrollViewer" Canvas.Left="15" Canvas.Top="43" Width="844" Height="533" 
                              VerticalScrollBarVisibility="Auto">
-                    <!-- ✅ GENİŞLETİLMİŞ: UniformGrid - Sol sidebar + LOG alanını da kaplar -->
                     <UniformGrid x:Name="gamesGrid" Columns="8" Margin="10">
                         <!-- Kartlar GamesPanelManager tarafından programatik olarak eklenecek -->
                     </UniformGrid>
@@ -804,9 +736,6 @@
         <!-- Energy Bar -->
         <Border x:Name="ProgressBarContainer" Canvas.Left="266" Canvas.Top="680" Width="824" Height="22" 
                 Style="{StaticResource LambdaPanelStyle}">
-            <Border.RenderTransform>
-                <TranslateTransform x:Name="ProgressBarTransform" X="0"/>
-            </Border.RenderTransform>
             <ProgressBar x:Name="progressBar" Style="{StaticResource LambdaProgressStyle}" 
                         Margin="-2,0,8,0" Height="10" VerticalAlignment="Center"/>
         </Border>
