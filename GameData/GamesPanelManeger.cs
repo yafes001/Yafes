@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 
 namespace Yafes.Managers
 {
@@ -73,67 +74,6 @@ namespace Yafes.Managers
         }
 
         public bool IsGamesVisible => _isGamesVisible;
-
-        public async Task ShowDebugInfoPopup()
-        {
-            try
-            {
-                var debugInfo = await Task.Run(() =>
-                {
-                    var info = "=== IMAGE MANAGER DEBUG INFO ===\n";
-                    var diskStatus = ImageManager.GetDiskStatus();
-                    info += diskStatus + "\n";
-
-                    var cacheStats = ImageManager.GetCacheStats();
-                    info += $"Cache Items: {cacheStats.cachedCount}\n";
-                    info += $"Available Files: {cacheStats.availableFiles}\n";
-                    info += $"GamesIcons Path: {cacheStats.gamesPath}\n\n";
-
-                    info += "=== FILE TEST ===\n";
-                    var testFile = "age_of_darkness_final_stand_FG_5.1GB.png";
-                    var testResult = ImageManager.GetGameImage(testFile);
-                    var isDefault = (testResult == ImageManager.GetDefaultImage());
-                    info += $"Test File: {testFile}\n";
-                    info += $"Result: {(isDefault ? "NOT FOUND (DEFAULT)" : "FOUND (SUCCESS)")}\n\n";
-
-                    if (!string.IsNullOrEmpty(cacheStats.gamesPath) && Directory.Exists(cacheStats.gamesPath))
-                    {
-                        var files = Directory.GetFiles(cacheStats.gamesPath, "*.png").Take(10);
-                        info += "=== ACTUAL FILES IN FOLDER ===\n";
-                        foreach (var file in files)
-                        {
-                            info += $"- {Path.GetFileName(file)}\n";
-                        }
-                    }
-                    else
-                    {
-                        info += "=== MANUAL PATH CHECK ===\n";
-                        string manualPath = @"D:\GamesIcons";
-                        bool exists = Directory.Exists(manualPath);
-                        info += $"D:\\GamesIcons exists: {exists}\n";
-
-                        if (exists)
-                        {
-                            var files = Directory.GetFiles(manualPath, "*.png").Take(5);
-                            info += $"Found {files.Count()} PNG files:\n";
-                            foreach (var file in files)
-                            {
-                                info += $"- {Path.GetFileName(file)}\n";
-                            }
-                        }
-                    }
-                    return info;
-                });
-
-                MessageBox.Show(debugInfo, "🔍 Image Manager Debug Info",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Debug error: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
 
         public async Task RefreshDiskPaths()
         {
@@ -339,18 +279,18 @@ namespace Yafes.Managers
                 var gamesGrid = FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
                 if (gamesGrid != null)
                 {
-                    // 🚀 v7 - Daha fazla oyun için daha fazla sütun
+                    // 🎮 YENİ SÜTUN AYARLARI - 5'Lİ GÖSTE‌RİM
                     if (fullWidth && IsProgressBarHidden())
                     {
-                        gamesGrid.Columns = 14; // ⬆️ 12'den 14'e çıkarıldı
+                        gamesGrid.Columns = 5; // ⬇️ 14'ten 5'e düşürüldü - En geniş modda bile 5 sütun
                     }
                     else if (fullWidth)
                     {
-                        gamesGrid.Columns = 12; // ⬆️ 10'dan 12'ye çıkarıldı  
+                        gamesGrid.Columns = 5; // ⬇️ 12'den 5'e düşürüldü - Normal geniş modda 5 sütun
                     }
                     else
                     {
-                        gamesGrid.Columns = 6; // ⬆️ 4'ten 6'ya çıkarıldı
+                        gamesGrid.Columns = 4; // ⬇️ 6'dan 4'e düşürüldü - Dar modda 4 sütun
                     }
                 }
 
@@ -369,6 +309,9 @@ namespace Yafes.Managers
                         gamesTitlePanel.Margin = new Thickness(5);
                     }
                 }
+
+                // 📏 Debug bilgisi - Sütun sayısını logla
+                System.Diagnostics.Debug.WriteLine($"🎮 Grid sütun sayısı güncellendi: {gamesGrid?.Columns ?? 0} sütun");
             }
             catch (Exception ex)
             {
@@ -707,13 +650,14 @@ namespace Yafes.Managers
                 gamesGrid.Children.Clear();
                 await Task.Delay(50);
 
+                // 🎮 SÜTUN AYARI - 5'Lİ GÖSTERİM
                 if (_leftSidebar != null && _leftSidebarTransform != null && _leftSidebarTransform.X < -200)
                 {
-                    gamesGrid.Columns = 8;
+                    gamesGrid.Columns = 5; // ⬇️ 8'den 5'e düşürüldü - Sidebar gizliyken 5 sütun
                 }
                 else
                 {
-                    gamesGrid.Columns = 4;
+                    gamesGrid.Columns = 5; // ⬇️ 4'ten 5'e çıkarıldı - Normal durumda 5 sütun
                 }
 
                 var games = await Yafes.Managers.GameDataManager.GetAllGamesAsync();
@@ -724,7 +668,7 @@ namespace Yafes.Managers
                     return;
                 }
 
-                // 🔍 v9 - Oyunları cache'e al (search için)
+                // Cache'e al (search için)
                 _allGames = games.ToList();
 
                 // Search varsa filtrele
@@ -742,8 +686,8 @@ namespace Yafes.Managers
                     ).ToList();
                 }
 
-                // 🚀 v8 - TÜM OYUNLARI GÖSTER (Take(40) kaldırıldı)
-                foreach (var game in displayGames) // ✅ Artık tüm oyunlar gösteriliyor
+                // Tüm oyunları göster
+                foreach (var game in displayGames)
                 {
                     try
                     {
@@ -761,8 +705,9 @@ namespace Yafes.Managers
 
                 gamesGrid.UpdateLayout();
 
-                // 📊 Debug bilgisi
+                // Debug bilgisi
                 System.Diagnostics.Debug.WriteLine($"📋 Toplam {games.Count} oyun yüklendi, {displayGames.Count} gösteriliyor, {gamesGrid.Children.Count} kart oluşturuldu");
+                System.Diagnostics.Debug.WriteLine($"🎮 Grid sütun sayısı: {gamesGrid.Columns}");
             }
             catch (Exception ex)
             {
@@ -786,11 +731,11 @@ namespace Yafes.Managers
                     BorderBrush = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
                     BorderThickness = new Thickness(1),
                     Margin = new Thickness(5),
-                    Height = 120,
+                    Height = 140, // Daha uzun kart
                     Cursor = Cursors.Hand,
                     Tag = game,
                     CornerRadius = new CornerRadius(8),
-                    ClipToBounds = true,
+                    ClipToBounds = true, // Önemli - Taşan içeriği kırp
                     Effect = new System.Windows.Media.Effects.DropShadowEffect
                     {
                         Color = Color.FromRgb(255, 165, 0),
@@ -803,39 +748,65 @@ namespace Yafes.Managers
                 // 📐 Grid ana container - Image + Repacker Badge + Text overlay için
                 var mainGrid = new Grid();
 
-                // 🖼️ BACKGROUND IMAGE
+                // 🖼️ İKİ KATMANLI GÖRÜNTÜ SİSTEMİ
                 if (!string.IsNullOrEmpty(game.ImageName))
                 {
                     try
                     {
-                        var gameImage = new Image
-                        {
-                            Stretch = Stretch.UniformToFill,
-                            HorizontalAlignment = HorizontalAlignment.Stretch,
-                            VerticalAlignment = VerticalAlignment.Stretch
-                        };
-
                         BitmapImage bitmapImage = await Task.Run(() => ImageManager.GetGameImage(game.ImageName));
 
                         if (bitmapImage != null && bitmapImage != ImageManager.GetDefaultImage())
                         {
-                            gameImage.Source = bitmapImage;
-                            mainGrid.Children.Add(gameImage);
+                            // 🎨 KATMAN 1: ARKA PLAN - Bulanık, tam doldur
+                            var backgroundImage = new Image
+                            {
+                                Source = bitmapImage,
+                                Stretch = Stretch.UniformToFill, // Tam dolduracak
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center,
+                                Opacity = 0.4, // Şeffaf arka plan
+                                Effect = new System.Windows.Media.Effects.BlurEffect
+                                {
+                                    Radius = 12 // Bulanık efekt
+                                }
+                            };
+                            mainGrid.Children.Add(backgroundImage);
+
+                            // 🎯 KATMAN 2: ÖN PLAN - Net, tam göster
+                            var foregroundImage = new Image
+                            {
+                                Source = bitmapImage,
+                                Stretch = Stretch.Uniform, // Tamamını gösterir, boşluk bırakabilir
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                VerticalAlignment = VerticalAlignment.Center,
+                                Width = Double.NaN,
+                                Height = Double.NaN,
+                                Opacity = 0.95 // Ana resim
+                            };
+
+                            // Görüntü kalitesi ayarları
+                            RenderOptions.SetBitmapScalingMode(foregroundImage, BitmapScalingMode.HighQuality);
+
+                            mainGrid.Children.Add(foregroundImage);
                         }
                         else
                         {
+                            // Resim bulunamazsa kategori ikonu göster
                             var iconGrid = CreateFullFrameCategoryIcon(game.Category);
                             mainGrid.Children.Add(iconGrid);
                         }
                     }
                     catch (Exception ex)
                     {
+                        // Hata durumunda kategori ikonu göster
+                        System.Diagnostics.Debug.WriteLine($"Image load error: {ex.Message}");
                         var iconGrid = CreateFullFrameCategoryIcon(game.Category);
                         mainGrid.Children.Add(iconGrid);
                     }
                 }
                 else
                 {
+                    // ImageName boşsa kategori ikonu göster
                     var iconGrid = CreateFullFrameCategoryIcon(game.Category);
                     mainGrid.Children.Add(iconGrid);
                 }
@@ -852,12 +823,12 @@ namespace Yafes.Managers
                 var textOverlay = new Border
                 {
                     Background = new LinearGradientBrush(
-                        Color.FromArgb(0, 0, 0, 0),     // Üst: Şeffaf
-                        Color.FromArgb(200, 0, 0, 0),   // Alt: Koyu
-                        new Point(0, 0), new Point(0, 1)),
+                        Color.FromArgb(0, 0, 0, 0),     // Üst: Tamamen şeffaf
+                        Color.FromArgb(220, 0, 0, 0),   // Alt: Koyu
+                        new Point(0, 0.7), new Point(0, 1)), // Gradient sadece alt %30'da
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    Height = 50, // Overlay yüksekliği
+                    Height = 55, // Overlay yüksekliği
                     Opacity = 0, // Başlangıçta görünmez
                     Name = "TextOverlay" // Mouse event'lerde bulabilmek için
                 };
@@ -866,26 +837,27 @@ namespace Yafes.Managers
                 {
                     VerticalAlignment = VerticalAlignment.Bottom,
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(5, 0, 5, 8)
+                    Margin = new Thickness(8, 0, 8, 10)
                 };
 
                 // 🎮 GAME NAME
                 var gameNameText = new TextBlock
                 {
                     Text = game.Name,
-                    FontSize = 9,
+                    FontSize = 10,
                     FontWeight = FontWeights.Bold,
                     Foreground = new SolidColorBrush(Colors.White),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
                     TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = 90,
+                    MaxWidth = 110,
+                    LineHeight = 12,
                     Effect = new System.Windows.Media.Effects.DropShadowEffect
                     {
                         Color = Colors.Black,
-                        BlurRadius = 4,
-                        ShadowDepth = 1,
-                        Opacity = 0.8
+                        BlurRadius = 5,
+                        ShadowDepth = 2,
+                        Opacity = 0.9
                     }
                 };
 
@@ -893,17 +865,17 @@ namespace Yafes.Managers
                 var gameSizeText = new TextBlock
                 {
                     Text = game.Size,
-                    FontSize = 8,
-                    Foreground = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+                    FontSize = 9,
+                    Foreground = new SolidColorBrush(Color.FromRgb(220, 220, 220)),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     TextAlignment = TextAlignment.Center,
-                    Margin = new Thickness(0, 2, 0, 0),
+                    Margin = new Thickness(0, 3, 0, 0),
                     Effect = new System.Windows.Media.Effects.DropShadowEffect
                     {
                         Color = Colors.Black,
-                        BlurRadius = 3,
+                        BlurRadius = 4,
                         ShadowDepth = 1,
-                        Opacity = 0.8
+                        Opacity = 0.9
                     }
                 };
 
@@ -912,7 +884,7 @@ namespace Yafes.Managers
                 textOverlay.Child = textStack;
 
                 // Transform for animation
-                var overlayTransform = new TranslateTransform { Y = 50 }; // Başlangıçta aşağıda
+                var overlayTransform = new TranslateTransform { Y = 55 }; // Başlangıçta aşağıda
                 textOverlay.RenderTransform = overlayTransform;
 
                 mainGrid.Children.Add(textOverlay);
@@ -927,11 +899,20 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"CreateGameCard Error: {ex.Message}");
                 return null;
             }
         }
 
         // 🔍 v7 - Dosya adından repacker bilgisini çıkarma
+
+
+        // 🏷️ v7 - Repacker badge oluşturma
+        // GamesPanelManager.cs dosyasında ExtractRepackerFromFileName metodunu bu ile değiştir:
+
+        /// <summary>
+        /// 🔍 Düzeltilmiş dosya adından repacker bilgisini çıkarma - GELİŞTİRİLMİŞ ALGORİTMA
+        /// </summary>
         private (string repacker, Color badgeColor, string displayName) ExtractRepackerFromFileName(string fileName)
         {
             if (string.IsNullOrEmpty(fileName))
@@ -939,137 +920,262 @@ namespace Yafes.Managers
 
             var upperFileName = fileName.ToUpper();
 
-            // 🎯 Bilinen repacker'ları tanımla
-            var repackers = new Dictionary<string, (Color color, string display)>
+            // 🎯 Debug için dosya adını logla
+            System.Diagnostics.Debug.WriteLine($"🔍 Repacker analizi: {fileName}");
+
+            // 🎯 Yeni kısaltmalarla repacker tanımları
+            var repackers = new Dictionary<string, (Color color, string display, string[] patterns)>
+    {
+        // FitGirl - Yeşil 🟢
+        { "FG", (Color.FromRgb(46, 204, 113), "FG", new[] { "FG", "FITGIRL" }) },
+        
+        // DODI - Kırmızı 🔴  
+        { "DD", (Color.FromRgb(231, 76, 60), "DD", new[] { "DODI", "DD" }) },
+        
+        // ElAmigos - Turuncu 🟠
+        { "EAS", (Color.FromRgb(230, 126, 34), "EAS", new[] { "ELAMIGOS", "AMIGOS", "EAS" }) },
+        
+        // CODEX - Mavi 🔵
+        { "CDX", (Color.FromRgb(52, 152, 219), "CDX", new[] { "CODEX", "CDX" }) },
+        
+        // SKIDROW - Mor 🟣
+        { "SDRW", (Color.FromRgb(155, 89, 182), "SDRW", new[] { "SKIDROW", "SKR", "SDRW" }) },
+        
+        // PLAZA - Sarı 🟡
+        { "PLZ", (Color.FromRgb(241, 196, 15), "PLZ", new[] { "PLAZA", "PLZ" }) },
+        
+        // Ek repacker'lar
+        { "CPY", (Color.FromRgb(244, 143, 177), "CPY", new[] { "CPY" }) },
+        { "EMP", (Color.FromRgb(212, 175, 55), "EMP", new[] { "EMPRESS", "EMP" }) },
+        { "HDL", (Color.FromRgb(149, 165, 166), "HDL", new[] { "HOODLUM", "HDL" }) },
+        { "TNY", (Color.FromRgb(26, 188, 156), "TNY", new[] { "TINY", "TINYREPACKS", "TNY" }) },
+        { "RLD", (Color.FromRgb(192, 57, 43), "RLD", new[] { "RELOADED", "RLD" }) }
+    };
+
+            // 🔍 GELİŞTİRİLMİŞ PATTERN ARAMA
+            foreach (var repackerEntry in repackers)
             {
-                // FitGirl - Yeşil
-                { "FG", (Color.FromRgb(46, 204, 113), "FitGirl") },
-                { "FITGIRL", (Color.FromRgb(46, 204, 113), "FitGirl") },
+                var repackerKey = repackerEntry.Key;
+                var repackerData = repackerEntry.Value;
+
+                // Her repacker için tüm pattern'leri kontrol et
+                foreach (var pattern in repackerData.patterns)
+                {
+                    // Çeşitli format kombinasyonlarını dene
+                    var searchPatterns = new[]
+                    {
+                // Standart formatlar
+                $"_{pattern}_",      // _FG_
+                $"-{pattern}-",      // -FG-
+                $"_{pattern}.",      // _FG.5.1GB
+                $"-{pattern}.",      // -FG.5.1GB  
+                $".{pattern}.",      // .FG.5.1GB
+                $"[{pattern}]",      // [FG]
+                $"({pattern})",      // (FG)
+                $"{pattern}_",       // FG_5.1GB
+                $"{pattern}-",       // FG-5.1GB
+                $"{pattern}.",       // FG.5.1GB
                 
-                // DODI - Mavi  
-                { "DODI", (Color.FromRgb(52, 152, 219), "DODI") },
+                // Boyut ile birlikte formatlar
+                $"_{pattern}_[0-9]", // _FG_5
+                $"-{pattern}_[0-9]", // -FG_5
+                $"{pattern}[0-9]",   // FG5
                 
-                // CODEX - Kırmızı
-                { "CODEX", (Color.FromRgb(231, 76, 60), "CODEX") },
+                // Kelime sınırları
+                $" {pattern} ",      // boşluk FG boşluk
+                $" {pattern}_",      // boşluk FG_
+                $"_{pattern} ",      // _FG boşluk
                 
-                // ElAmigos - Turuncu
-                { "ELAMIGOS", (Color.FromRgb(230, 126, 34), "ElAmigos") },
-                { "AMIGOS", (Color.FromRgb(230, 126, 34), "ElAmigos") },
-                
-                // Skidrow - Mor
-                { "SKIDROW", (Color.FromRgb(155, 89, 182), "SKIDROW") },
-                { "SKR", (Color.FromRgb(155, 89, 182), "SKIDROW") },
-                
-                // CPY - Pembe
-                { "CPY", (Color.FromRgb(244, 143, 177), "CPY") },
-                
-                // PLAZA - Sarı
-                { "PLAZA", (Color.FromRgb(241, 196, 15), "PLAZA") },
-                
-                // EMPRESS - Altın
-                { "EMPRESS", (Color.FromRgb(212, 175, 55), "EMPRESS") },
-                
-                // HOODLUM - Gri
-                { "HOODLUM", (Color.FromRgb(149, 165, 166), "HOODLUM") },
-                
-                // TinyRepacks - Cyan
-                { "TINY", (Color.FromRgb(26, 188, 156), "TinyRepacks") },
-                { "TINYREPACKS", (Color.FromRgb(26, 188, 156), "TinyRepacks") },
-                
-                // RELOADED - Koyu Kırmızı
-                { "RLD", (Color.FromRgb(192, 57, 43), "RELOADED") },
-                { "RELOADED", (Color.FromRgb(192, 57, 43), "RELOADED") }
+                // Dosya adı başında/sonunda
+                $"^{pattern}_",      // Başlangıçta FG_
+                $"_{pattern}$"       // Sonunda _FG
             };
 
-            // 🔍 Dosya adından repacker ara
-            foreach (var repacker in repackers)
-            {
-                // Çeşitli pattern'leri dene
-                var patterns = new[]
-                {
-                    $"_{repacker.Key}_",     // _FG_
-                    $"-{repacker.Key}-",     // -FG-
-                    $"_{repacker.Key}.",     // _FG.
-                    $"-{repacker.Key}.",     // -FG.
-                    $"[{repacker.Key}]",     // [FG]
-                    $"({repacker.Key})",     // (FG)
-                    $"{repacker.Key}_",      // FG_
-                    $"{repacker.Key}-"       // FG-
-                };
+                    foreach (var searchPattern in searchPatterns)
+                    {
+                        // Regex pattern'ini basit string Contains'e çevir
+                        var simplePattern = searchPattern
+                            .Replace("^", "")
+                            .Replace("$", "")
+                            .Replace("[0-9]", "");
 
-                foreach (var pattern in patterns)
-                {
+                        if (upperFileName.Contains(simplePattern.ToUpper()))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"✅ Repacker bulundu: {pattern} -> {repackerKey} (Pattern: {simplePattern})");
+                            return (repackerKey, repackerData.color, repackerData.display);
+                        }
+                    }
+
+                    // Basit contains kontrolü - backup olarak
                     if (upperFileName.Contains(pattern.ToUpper()))
                     {
-                        return (repacker.Key, repacker.Value.color, repacker.Value.display);
+                        System.Diagnostics.Debug.WriteLine($"✅ Repacker bulundu (basit): {pattern} -> {repackerKey}");
+                        return (repackerKey, repackerData.color, repackerData.display);
                     }
                 }
             }
 
+            System.Diagnostics.Debug.WriteLine($"❌ Repacker bulunamadı: {fileName}");
             return ("", Colors.Gray, "Unknown");
         }
 
-        // 🏷️ v7 - Repacker badge oluşturma
+        // 🏷️ Geliştirilmiş repacker badge oluşturma - DAHA KÜÇÜK VE NET
+        // GamesPanelManager.cs dosyasında CreateRepackerBadge metodunu bul ve TAMAMEN bu kodla değiştir:
+
+        /// <summary>
+        /// 🎀 RIBBON BANNER Style Repacker Badge - Modern fold effect
+        /// </summary>
         private Border CreateRepackerBadge((string repacker, Color badgeColor, string displayName) repackerInfo)
         {
-            var badge = new Border
+            // 🎀 MAIN CONTAINER - Ribbon container
+            var ribbonContainer = new Canvas
             {
-                Background = new SolidColorBrush(repackerInfo.badgeColor),
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(6, 2, 6, 2),
+                Width = 50,
+                Height = 20,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 5, 5, 0),
+                Margin = new Thickness(0, 8, 0, 0), // Sağa doğru taşar
+                ClipToBounds = false // Taşmasına izin ver
+            };
+
+            Panel.SetZIndex(ribbonContainer, 100);
+
+            // 🎗️ MAIN RIBBON PART - Ana ribbon kısmı
+            var mainRibbon = new Border
+            {
+                Background = new LinearGradientBrush
+                {
+                    StartPoint = new System.Windows.Point(0, 0),
+                    EndPoint = new System.Windows.Point(0, 1),
+                    GradientStops = new GradientStopCollection
+            {
+                new GradientStop(repackerInfo.badgeColor, 0.0),
+                new GradientStop(Color.FromArgb(255,
+                    (byte)(repackerInfo.badgeColor.R * 0.8),
+                    (byte)(repackerInfo.badgeColor.G * 0.8),
+                    (byte)(repackerInfo.badgeColor.B * 0.8)), 0.6),
+                new GradientStop(Color.FromArgb(255,
+                    (byte)(repackerInfo.badgeColor.R * 0.7),
+                    (byte)(repackerInfo.badgeColor.G * 0.7),
+                    (byte)(repackerInfo.badgeColor.B * 0.7)), 1.0)
+            }
+                },
+                Width = 45,
+                Height = 18,
+                CornerRadius = new CornerRadius(0),
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
-                    Color = Colors.Black,
-                    BlurRadius = 4,
-                    ShadowDepth = 2,
-                    Opacity = 0.7
+                    Color = Color.FromArgb(120, 0, 0, 0),
+                    BlurRadius = 6,
+                    ShadowDepth = 3,
+                    Opacity = 0.8,
+                    Direction = 315 // Sol üstten sağ alta gölge
                 }
             };
 
-            var badgeText = new TextBlock
+            // 📝 RIBBON TEXT
+            var ribbonText = new TextBlock
             {
                 Text = repackerInfo.displayName,
-                FontSize = 7,
+                FontSize = 9,
                 FontWeight = FontWeights.Bold,
+                FontFamily = new FontFamily("Arial"),
                 Foreground = new SolidColorBrush(Colors.White),
                 HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    BlurRadius = 1,
+                    ShadowDepth = 1,
+                    Opacity = 0.8
+                }
             };
 
-            badge.Child = badgeText;
-            return badge;
+            mainRibbon.Child = ribbonText;
+
+            // 🔺 FOLD TRIANGLE - Ribbon'un katlanmış kısmı
+            var foldTriangle = new Polygon
+            {
+                Points = new PointCollection
+        {
+            new System.Windows.Point(45, 0),   // Ana ribbon'un sağ üst köşesi
+            new System.Windows.Point(50, 9),   // Dış nokta (ribbon center yüksekliği)
+            new System.Windows.Point(45, 18)   // Ana ribbon'un sağ alt köşesi
+        },
+                Fill = new LinearGradientBrush
+                {
+                    StartPoint = new System.Windows.Point(0, 0),
+                    EndPoint = new System.Windows.Point(1, 1),
+                    GradientStops = new GradientStopCollection
+            {
+                new GradientStop(Color.FromArgb(255,
+                    (byte)(repackerInfo.badgeColor.R * 0.6),
+                    (byte)(repackerInfo.badgeColor.G * 0.6),
+                    (byte)(repackerInfo.badgeColor.B * 0.6)), 0.0),
+                new GradientStop(Color.FromArgb(255,
+                    (byte)(repackerInfo.badgeColor.R * 0.4),
+                    (byte)(repackerInfo.badgeColor.G * 0.4),
+                    (byte)(repackerInfo.badgeColor.B * 0.4)), 1.0)
+            }
+                },
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Color.FromArgb(80, 0, 0, 0),
+                    BlurRadius = 3,
+                    ShadowDepth = 2,
+                    Opacity = 0.6
+                }
+            };
+
+            // 🎨 RIBBON ASSEMBLY
+            Canvas.SetLeft(mainRibbon, 0);
+            Canvas.SetTop(mainRibbon, 1);
+            Canvas.SetLeft(foldTriangle, 0);
+            Canvas.SetTop(foldTriangle, 1);
+
+            ribbonContainer.Children.Add(foldTriangle); // Önce triangle (arka planda)
+            ribbonContainer.Children.Add(mainRibbon);   // Sonra main ribbon (ön planda)
+
+            // 🏗️ FINAL CONTAINER
+            var finalContainer = new Border
+            {
+                Child = ribbonContainer,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 8, -5, 0) // Sağa doğru taşır
+            };
+
+            return finalContainer;
         }
         private Grid CreateFullFrameCategoryIcon(string category)
         {
             var iconGrid = new Grid
             {
                 Background = new LinearGradientBrush(
-                    Color.FromArgb(80, 0, 0, 0),
-                    Color.FromArgb(120, 0, 0, 0),
+                    Color.FromArgb(100, 0, 0, 0),
+                    Color.FromArgb(140, 0, 0, 0),
                     new Point(0, 0),
                     new Point(1, 1)
                 ),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch // 🔧 DÜZELTİLDİ: HorizontalAlignment -> VerticalAlignment
+                VerticalAlignment = VerticalAlignment.Stretch
             };
 
             var categoryIcon = GetCategoryIcon(category);
             var iconText = new TextBlock
             {
                 Text = categoryIcon,
-                FontSize = 48, // 🔍 Çok büyük icon
+                FontSize = 52, // Daha büyük ikon
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
                     Color = Color.FromRgb(0, 0, 0),
-                    BlurRadius = 15,
-                    ShadowDepth = 3,
-                    Opacity = 0.8
+                    BlurRadius = 18,
+                    ShadowDepth = 4,
+                    Opacity = 0.9
                 }
             };
 
@@ -1090,6 +1196,8 @@ namespace Yafes.Managers
                 "horror" => "👻",
                 "simulation" => "🎛️",
                 "puzzle" => "🧩",
+                "adventure" => "🗺️",
+                "platform" => "🎮",
                 _ => "🎮"
             };
         }
