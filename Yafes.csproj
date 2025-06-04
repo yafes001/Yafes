@@ -33,6 +33,7 @@
       <DependentUpon>View\LoginForm.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="UI\Main.xaml.cs" />
     <Compile Include="UI\StartupScreen.xaml.cs">
       <DependentUpon>View\StartupScreen.xaml</DependentUpon>
       <SubType>Code</SubType>

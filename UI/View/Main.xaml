@@ -607,9 +607,12 @@
             </Canvas>
         </Border>
 
-        <!-- Left Sidebar -->
-        <Border Canvas.Left="8" Canvas.Top="76" Width="250" Height="626" 
+        <!-- Left Sidebar - ANİMASYONLU SLIDE EKLEMEK İÇİN TRANSFORM'U CANLANDIRIYORUZ -->
+        <Border x:Name="LeftSidebar" Canvas.Left="8" Canvas.Top="76" Width="250" Height="626" 
                 Style="{StaticResource LambdaPanelStyle}">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="LeftSidebarTransform" X="0"/>
+            </Border.RenderTransform>
             <Canvas Margin="15">
                 <!-- System Info Section - SADECE GPU İÇİN GENİŞLETİLMİŞ -->
                 <Border Canvas.Left="0" Canvas.Top="0" Width="220" Height="120" 
@@ -689,12 +692,12 @@
             </Canvas>
         </Border>
 
-        <!-- Main Terminal Area - ANİMASYONLU -->
-        <Border Canvas.Left="266" Canvas.Top="76" Width="616" Height="596" 
+        <!-- Main Terminal Area - ANİMASYONLU TERMINAL -->
+        <Border x:Name="TerminalPanel" Canvas.Left="266" Canvas.Top="76" Width="616" Height="596" 
                 Style="{StaticResource LambdaPanelStyle}"
                 Tag="TerminalPanel">
             <Border.RenderTransform>
-                <TranslateTransform Y="0"/>
+                <TranslateTransform x:Name="TerminalTransform" Y="0"/>
             </Border.RenderTransform>
             <Canvas>
                 <!-- Terminal Header -->
@@ -722,13 +725,13 @@
             </Canvas>
         </Border>
 
-        <!-- YENİ GAMES PANEL - BAŞLANGIÇTA GİZLİ -->
-        <Border Canvas.Left="266" Canvas.Top="76" Width="616" Height="290" 
+        <!-- YENİ GAMES PANEL - BAŞLANGIÇTA GİZLİ VE ANİMASYONLU -->
+        <Border x:Name="GamesPanel" Canvas.Left="266" Canvas.Top="76" Width="616" Height="520" 
                 Style="{StaticResource LambdaPanelStyle}"
                 Visibility="Collapsed"
                 Tag="GamesPanel">
             <Border.RenderTransform>
-                <TranslateTransform Y="-50"/>
+                <TranslateTransform x:Name="GamesPanelTransform" Y="-50"/>
             </Border.RenderTransform>
             <Canvas>
                 <!-- Games Header -->
@@ -745,89 +748,13 @@
                               FontSize="14" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0,0,0"/>
                 </Border>
 
-                <!-- Games Content Grid -->
-                <ScrollViewer Canvas.Left="15" Canvas.Top="43" Width="586" Height="227" 
+                <!-- Games Content Grid - STATIC KARTLAR KALDIRILDI -->
+                <ScrollViewer x:Name="gamesScrollViewer" Canvas.Left="15" Canvas.Top="43" Width="586" Height="457" 
                              VerticalScrollBarVisibility="Auto">
+                    <!-- ✅ YENİ: Boş UniformGrid - Dinamik olarak doldurulacak -->
                     <UniformGrid x:Name="gamesGrid" Columns="4" Margin="10">
-                        <!-- Steam -->
-                        <Border Style="{StaticResource GameCardStyle}">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="🎯" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,5"/>
-                                <TextBlock Text="Steam" FontSize="10" FontWeight="Bold" 
-                                          Style="{StaticResource LambdaTextStyle}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="150 MB" FontSize="8" Foreground="#888" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Epic Games -->
-                        <Border Style="{StaticResource GameCardStyle}">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="🎮" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,5"/>
-                                <TextBlock Text="Epic Games" FontSize="10" FontWeight="Bold" 
-                                          Style="{StaticResource LambdaTextStyle}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="200 MB" FontSize="8" Foreground="#888" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- GOG Galaxy -->
-                        <Border Style="{StaticResource GameCardStyle}">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="🎲" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,5"/>
-                                <TextBlock Text="GOG Galaxy" FontSize="10" FontWeight="Bold" 
-                                          Style="{StaticResource LambdaTextStyle}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="80 MB" FontSize="8" Foreground="#888" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Origin -->
-                        <Border Style="{StaticResource GameCardStyle}">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="⚡" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,5"/>
-                                <TextBlock Text="Origin" FontSize="10" FontWeight="Bold" 
-                                          Style="{StaticResource LambdaTextStyle}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="120 MB" FontSize="8" Foreground="#888" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Battle.net -->
-                        <Border Style="{StaticResource GameCardStyle}">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="🚀" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,5"/>
-                                <TextBlock Text="Battle.net" FontSize="10" FontWeight="Bold" 
-                                          Style="{StaticResource LambdaTextStyle}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="90 MB" FontSize="8" Foreground="#888" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Ubisoft Connect -->
-                        <Border Style="{StaticResource GameCardStyle}">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="🎪" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,5"/>
-                                <TextBlock Text="Ubisoft Connect" FontSize="10" FontWeight="Bold" 
-                                          Style="{StaticResource LambdaTextStyle}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="110 MB" FontSize="8" Foreground="#888" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Rockstar -->
-                        <Border Style="{StaticResource GameCardStyle}">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="🎭" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,5"/>
-                                <TextBlock Text="Rockstar" FontSize="10" FontWeight="Bold" 
-                                          Style="{StaticResource LambdaTextStyle}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="85 MB" FontSize="8" Foreground="#888" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Xbox App -->
-                        <Border Style="{StaticResource GameCardStyle}">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="⭐" FontSize="24" HorizontalAlignment="Center" Margin="0,0,0,5"/>
-                                <TextBlock Text="Xbox App" FontSize="10" FontWeight="Bold" 
-                                          Style="{StaticResource LambdaTextStyle}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="95 MB" FontSize="8" Foreground="#888" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
+                        <!-- STATIC KARTLAR KALDIRILDI -->
+                        <!-- Kartlar GamesPanelManager tarafından programatik olarak eklenecek -->
                     </UniformGrid>
                 </ScrollViewer>
             </Canvas>

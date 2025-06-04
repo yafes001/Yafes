@@ -29,7 +29,6 @@ namespace Yafes
         private GamesPanelManager gamesPanelManager;
         private bool isGamesVisible = false;
         private ListBox _lstDrivers;
-        private GamesManager gamesManager;
         private SystemInfoManager systemInfoManager;
         private bool _driversMessageShown = false;
         private bool _programsMessageShown = false;
@@ -96,24 +95,7 @@ namespace Yafes
 
                 ListEmbeddedResources();
 
-                // ❌ GAMES MANAGER BAŞLATMA BÖLÜMÜNÜ YORUM SATIRINA AL
-                /*
-                // ✅ GAMES MANAGER'I GÜVENLİ ŞEKİLDE BAŞLAT
-                try
-                {
-                    txtLog.AppendText("🎮 Games Manager başlatılıyor...\n");
-                    gamesManager = new GamesManager(this);
-                    txtLog.AppendText("🎮 Games Manager başarıyla başlatıldı\n");
-                }
-                catch (Exception gameEx)
-                {
-                    txtLog.AppendText($"⚠️ Games Manager başlatma hatası: {gameEx.Message}\n");
-                    txtLog.AppendText("🔄 Games özellikleri devre dışı - normal işlevler çalışmaya devam ediyor\n");
-                    gamesManager = null; // Null olarak bırak, hata vermeden devam et
-                }
-                */
-
-                // ✅ UI YÜKLENDİKTEN SONRA KATEGORİ SİSTEMİNİ BAŞLAT
+             
                 this.Loaded += Main_Loaded;
             }
             catch (Exception ex)
@@ -594,11 +576,8 @@ namespace Yafes
             }
         }
 
-
-        // Kategori butonu tıklama olayı
-        // CategoryButton_Click metodunu GEÇİCİ OLARAK bu basit versiyonla değiştir:
-
-        // Mevcut CategoryButton_Click metodunuzu bu ile değiştirin
+        // CategoryButton_Click metodunu bu geliştirilmiş versiyonla değiştirin
+        // MEVCUT KODLAR KORUNDU + Slide Animation eklendi
         private async void CategoryButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -606,7 +585,7 @@ namespace Yafes
                 Button clickedButton = sender as Button;
                 if (clickedButton == null) return;
 
-                // Kurulum kontrol
+                // MEVCUT: Kurulum kontrol
                 if (isInstalling)
                 {
                     txtLog.AppendText("⚠️ Kurulum devam ediyor, kategori değişimi engellendi\n");
@@ -615,7 +594,7 @@ namespace Yafes
 
                 txtLog.AppendText($"🔘 Buton tıklandı: {clickedButton.Content}\n");
 
-                // ✅ GAMES BUTONU - GamesPanelManager'a delege et
+                // ✅ ENHANCED: GAMES BUTONU - GamesPanelManager'a delege et (slide animation ile)
                 if (clickedButton == btnGamesCategory)
                 {
                     if (gamesPanelManager != null)
@@ -629,12 +608,19 @@ namespace Yafes
                             {
                                 isGamesVisible = true;
                                 SetSelectedCategory("Games");
+                                txtLog.AppendText("🎮 Games modu aktif - Sol sidebar gizlendi, Games panel genişletildi\n");
+                                txtLog.AppendText("💡 Daha geniş oyun kataloğu için sidebar slide edildi!\n");
                             }
                             else
                             {
                                 isGamesVisible = false;
                                 SetSelectedCategory("Programlar");
+                                txtLog.AppendText("🔄 Normal mod - Sol sidebar gösterildi, Terminal restore edildi\n");
                             }
+                        }
+                        else
+                        {
+                            txtLog.AppendText("❌ Games panel toggle işlemi başarısız!\n");
                         }
                     }
                     else
@@ -644,42 +630,70 @@ namespace Yafes
                 }
                 else
                 {
-                    // DİĞER BUTONLAR (Programs, Drivers, Tools) - ESKİ MANTIK KORUNDU
+                    // MEVCUT: DİĞER BUTONLAR (Programs, Drivers, Tools) - ESKİ MANTIK KORUNDU
                     txtLog.AppendText($"📦 Normal kategori butonu: {clickedButton.Content}\n");
 
-                    // ✅ Games açıksa kapat - GamesPanelManager üzerinden
+                    // ✅ ENHANCED: Games açıksa kapat - GamesPanelManager üzerinden (slide animation ile)
                     if (isGamesVisible && gamesPanelManager != null)
                     {
                         txtLog.AppendText("🔴 Games panel normal kategoriye geçiş için kapatılıyor...\n");
-                        await gamesPanelManager.ToggleGamesPanel(); // Kapatır
-                        isGamesVisible = false;
+                        txtLog.AppendText("➡️ Sol sidebar geri getiriliyor...\n");
+
+                        bool closeSuccess = await gamesPanelManager.ToggleGamesPanel(); // Kapatır ve sidebar'ı geri getirir
+
+                        if (closeSuccess)
+                        {
+                            isGamesVisible = false;
+                            txtLog.AppendText("✅ Games panel kapatıldı, sidebar restore edildi, normal kategoriye geçiliyor\n");
+                        }
+                        else
+                        {
+                            txtLog.AppendText("⚠️ Games panel kapatma işlemi başarısız, yine de devam ediliyor\n");
+                            isGamesVisible = false;
+
+                            // Force reset - acil durum
+                            gamesPanelManager.ForceReset();
+                        }
                     }
 
-                    // Normal kategori geçişleri
+                    // MEVCUT: Normal kategori geçişleri (orijinal kod korundu)
                     if (clickedButton == btnDriverCategory)
                     {
                         UpdateCategoryView("Programlar");
                         SetSelectedCategory("Programlar");
+                        txtLog.AppendText("🔧 Programlar kategorisi seçildi\n");
                     }
                     else if (clickedButton == btnProgramsCategory)
                     {
                         UpdateCategoryView("Sürücüler");
                         SetSelectedCategory("Sürücüler");
+                        txtLog.AppendText("📦 Sürücüler kategorisi seçildi\n");
                     }
                     else if (clickedButton == btnToolsCategory)
                     {
                         currentCategory = "Tools";
                         SetSelectedCategory("Tools");
-                        lstDrivers.Items.Clear();
+                        if (lstDrivers != null)
+                        {
+                            lstDrivers.Items.Clear();
+                        }
                         txtLog.AppendText("🔧 Tools kategorisi seçildi\n");
                     }
                 }
 
-                txtLog.AppendText($"✅ Kategori işlemi tamamlandı\n");
+                txtLog.AppendText($"✅ Kategori işlemi tamamlandı - Aktif kategori: {currentCategory}\n");
             }
             catch (Exception ex)
             {
                 txtLog.AppendText($"❌ CategoryButton_Click hatası: {ex.Message}\n");
+
+                // ENHANCED: Hata durumunda Games panel'i güvenli sıfırla
+                if (gamesPanelManager != null)
+                {
+                    txtLog.AppendText("🚨 Hata nedeniyle GamesPanelManager force reset yapılıyor...\n");
+                    gamesPanelManager.ForceReset();
+                    isGamesVisible = false;
+                }
             }
         }
 
