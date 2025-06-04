@@ -92,7 +92,7 @@ namespace Yafes.Managers
                 if (_progressBarContainer != null)
                 {
                     _progressBarHeight = _progressBarContainer.ActualHeight;
-
+                    
                     if (_progressBarHeight <= 0)
                     {
                         _progressBarHeight = _progressBarContainer.Height;
@@ -402,24 +402,39 @@ namespace Yafes.Managers
             {
                 if (!_isGamesVisible)
                 {
+                    // Sıralı açılış animasyonu
+                    // 1. Önce sol sidebar sola kayar
+                    await SlideSidebarOut();
+                    
+                    // 2. Games panel gösterilir
                     bool success = await ShowGamesPanel();
                     if (success)
                     {
                         _isGamesVisible = true;
-                        await SlideSidebarOut();
+                        
+                        // 3. Progress bar sağa kayar
                         await SlideProgressBarOut();
+                        
+                        // 4. Son olarak window yukarı kayar (CompactWindowHeight zaten SlideProgressBarOut içinde)
                     }
                     return success;
                 }
                 else
                 {
-                    await SlideSidebarIn();
+                    // Sıralı kapanış animasyonu (ters sırada)
+                    // 1. Window aşağı kayar + Progress bar geri gelir
                     await SlideProgressBarIn();
+                    
+                    // 2. Games panel gizlenir
                     bool success = await HideGamesPanel();
                     if (success)
                     {
                         _isGamesVisible = false;
                     }
+                    
+                    // 3. Sol sidebar geri gelir
+                    await SlideSidebarIn();
+                    
                     return success;
                 }
             }
@@ -713,7 +728,7 @@ namespace Yafes.Managers
                         };
 
                         var imageName = Path.GetFileNameWithoutExtension(game.ImageName);
-
+                        
                         // ImageManager'ın hazır olmasını kontrol et
                         BitmapImage bitmapImage = null;
                         for (int retry = 0; retry < 3; retry++)
