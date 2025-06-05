@@ -742,7 +742,7 @@
                 Visibility="Collapsed"
                 Tag="GamesPanel">
             <Canvas>
-                <!-- 🎮 Games Header WITH SEARCH BOX - FIXED VERSION -->
+                <!-- 🎮 Games Header WITH SEARCH BOX - EVENT HANDLERS REMOVED -->
                 <Border x:Name="GamesTitlePanel" Canvas.Left="0" Canvas.Top="0" Width="874" Height="28" 
                         BorderThickness="0,0,0,1" BorderBrush="#FFA500"
                         Tag="GamesTitlePanel">
@@ -770,7 +770,7 @@
                         <!-- Spacer -->
                         <StackPanel Grid.Column="1" Orientation="Horizontal"/>
 
-                        <!-- 🔍 FIXED SEARCH BOX -->
+                        <!-- 🔍 SEARCH BOX - EVENT HANDLERS REMOVED -->
                         <Border Grid.Column="2" x:Name="GameSearchContainer"
                                 Width="300" Height="20"
                                 VerticalAlignment="Center"
@@ -829,9 +829,6 @@
                                         <!-- Search TextBox -->
                                         <TextBox x:Name="GameSearchBox" 
                                                 Style="{StaticResource SearchBoxStyle}"
-                                                TextChanged="GameSearchBox_TextChanged"
-                                                GotFocus="GameSearchBox_GotFocus"
-                                                LostFocus="GameSearchBox_LostFocus"
                                                 Margin="0"/>
                                     </Grid>
 
@@ -844,8 +841,7 @@
                                            BorderThickness="0"
                                            Cursor="Hand"
                                            Visibility="Collapsed"
-                                           Margin="4,0,0,0"
-                                           Click="ClearSearchButton_Click">
+                                           Margin="4,0,0,0">
                                         <Button.Template>
                                             <ControlTemplate TargetType="Button">
                                                 <Border Background="{TemplateBinding Background}" 

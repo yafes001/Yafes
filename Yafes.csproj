@@ -29,6 +29,7 @@
     <Compile Include="GameData\GamesPanelManeger.cs" />
     <Compile Include="GameData\RepackerBadgeManager.cs" />
     <Compile Include="GameData\UIHelperManager.cs" />
+    <Compile Include="Managers\InstallationManager.cs" />
     <Compile Include="Managers\ImageManager.cs" />
     <Compile Include="Managers\SystemInfoManager.cs" />
     <Compile Include="Managers\WallpaperManager.cs" />
