@@ -826,13 +826,13 @@
                                                   IsHitTestVisible="False"
                                                   Margin="2,0"/>
 
-                                        <!-- Search TextBox -->
+                                        <!-- Search TextBox - NO EVENT HANDLERS -->
                                         <TextBox x:Name="GameSearchBox" 
                                                 Style="{StaticResource SearchBoxStyle}"
                                                 Margin="0"/>
                                     </Grid>
 
-                                    <!-- Clear Button -->
+                                    <!-- Clear Button - NO EVENT HANDLER -->
                                     <Button x:Name="ClearSearchButton" 
                                            Grid.Column="2"
                                            Width="14" Height="14"

@@ -16,6 +16,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using Yafes;
@@ -32,23 +33,11 @@ namespace Yafes
         private SystemInfoManager systemInfoManager;
         private bool _driversMessageShown = false;
         private bool _programsMessageShown = false;
-
-        // InstallationManager ile değiştirilecek alanlar
-        private InstallationManager installationManager;
-        private readonly HttpClient httpClient = new HttpClient();
-
-        // Model listeleri - artık Yafes.Managers namespace'inden
-        private List<Yafes.Managers.DriverInfo> drivers = new List<Yafes.Managers.DriverInfo>();
-        private List<Yafes.Managers.ProgramInfo> programs = new List<Yafes.Managers.ProgramInfo>();
         private Dictionary<string, Dictionary<string, bool>> categorySelections = new Dictionary<string, Dictionary<string, bool>>();
-
-        // Ana listeler - değişmeyecek kaynak listeler
-        private List<Yafes.Managers.DriverInfo> masterDrivers = new List<Yafes.Managers.DriverInfo>();
-        private List<Yafes.Managers.ProgramInfo> masterPrograms = new List<Yafes.Managers.ProgramInfo>();
-
         // Kategori değişkenleri
         private string currentCategory = "Sürücüler"; // Varsayılan kategori
         private InstallationQueueManager queueManager;
+        private InstallationManager installationManager;
 
         public Main()
         {
@@ -58,23 +47,13 @@ namespace Yafes
                 txtLog.AppendText("Yafes Kurulum Aracı başlatıldı\n");
                 txtLog.AppendText("Lütfen 'Yükle' butonuna tıklayarak işleme başlayın\n");
 
-                // Ana listeleri oluştur
-                masterDrivers = new List<Yafes.Managers.DriverInfo>();
-                masterPrograms = new List<Yafes.Managers.ProgramInfo>();
-                drivers = new List<Yafes.Managers.DriverInfo>();
-                programs = new List<Yafes.Managers.ProgramInfo>();
-
-                // Sürücü ve program bilgilerini ekle
-                InitializeDrivers();
-                InitializePrograms();
-
                 // KUYRUK YÖNETİCİSİNİ BAŞLAT
                 InitializeQueueManager();
 
                 // ✅ SİSTEM BİLGİSİ YÖNETİCİSİNİ BAŞLAT
                 InitializeSystemInfo();
 
-                // ✅ INSTALLATION MANAGER'I BAŞLAT
+                // INSTALLATION MANAGER'I BAŞLAT
                 InitializeInstallationManager();
 
                 // İnternet kontrolü ve diğer işlemler...
@@ -88,6 +67,8 @@ namespace Yafes
                 }
 
                 ListEmbeddedResources();
+
+
                 this.Loaded += Main_Loaded;
             }
             catch (Exception ex)
@@ -101,91 +82,16 @@ namespace Yafes
             }
         }
 
-        /// <summary>
-        /// InstallationManager'ı başlatır
-        /// </summary>
         private void InitializeInstallationManager()
         {
-            try
-            {
-                // InstallationManager'ı dependency injection ile oluştur
-                installationManager = new InstallationManager(
-                    progressBar,
-                    progressBarStatus,
-                    txtStatusBar,
-                    this.Dispatcher,
-                    queueManager
-                );
-
-                // Event'leri bağla
-                installationManager.LogMessage += InstallationManager_LogMessage;
-                installationManager.ProgressChanged += InstallationManager_ProgressChanged;
-                installationManager.InstallationComplete += InstallationManager_InstallationComplete;
-
-                txtLog.AppendText("✅ InstallationManager başarıyla başlatıldı\n");
-            }
-            catch (Exception ex)
-            {
-                txtLog.AppendText($"❌ InstallationManager başlatma hatası: {ex.Message}\n");
-            }
-        }
-
-        /// <summary>
-        /// InstallationManager'dan gelen log mesajları
-        /// </summary>
-        private void InstallationManager_LogMessage(object sender, string message)
-        {
-            AddLog(message);
-        }
-
-        /// <summary>
-        /// InstallationManager'dan gelen progress güncellemeleri
-        /// </summary>
-        private void InstallationManager_ProgressChanged(object sender, ProgressEventArgs e)
-        {
-            // Progress bar zaten InstallationManager tarafından güncelleniyor
-            // Burada ek işlemler yapılabilir
-        }
-
-        /// <summary>
-        /// Kurulum tamamlandığında çalışır
-        /// </summary>
-        private void InstallationManager_InstallationComplete(object sender, InstallationCompleteEventArgs e)
-        {
-            try
-            {
-                // Kurulum istatistiklerini göster
-                string stats = $"Kurulum Tamamlandı!\n" +
-                              $"Toplam Sürücü: {e.TotalDrivers} (Başarılı: {e.SuccessfulDrivers}, Başarısız: {e.FailedDrivers})\n" +
-                              $"Toplam Program: {e.TotalPrograms} (Başarılı: {e.SuccessfulPrograms}, Başarısız: {e.FailedPrograms})\n" +
-                              $"Tamamlanma Zamanı: {e.CompletionTime:HH:mm:ss}";
-
-                AddLog(stats);
-
-                // Butonları tekrar aktif et
-                btnInstall.IsEnabled = true;
-                btnAddDriver.IsEnabled = true;
-
-                // Yeniden başlatma kontrolü
-                if (chkRestart.IsChecked == true)
-                {
-                    MessageBoxResult result = MessageBox.Show(
-                        "Kurulum tamamlandı. Bilgisayarı yeniden başlatmak istiyor musunuz?",
-                        "Yeniden Başlat",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question);
-
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        Process.Start("shutdown", "/r /t 10");
-                        Application.Current.Shutdown();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                AddLog($"Kurulum tamamlama işlemi hatası: {ex.Message}");
-            }
+            installationManager = new InstallationManager(
+                txtLogAppendText: (msg) => txtLog.AppendText(msg),
+                setProgressBarValue: (val) => progressBar.Value = val,
+                setProgressBarStatusValue: (val) => progressBarStatus.Value = val,
+                setTxtStatusBarText: (text) => txtStatusBar.Text = text,
+                getChkRestartIsChecked: () => chkRestart.IsChecked == true,
+                queueManager: queueManager
+            );
         }
 
         private void InitializeGamesPanelManager()
@@ -222,23 +128,23 @@ namespace Yafes
                 txtLog.AppendText($"⚠️ Yükleme hatası: {ex.Message}\n");
             }
         }
-
         public ListBox lstDrivers
         {
             get
             {
                 if (_lstDrivers == null)
                 {
+                    // İKİ PARAMETRELİ ÇAĞRI - DÜZELTME
                     _lstDrivers = FindElementByTag<ListBox>(this, "MainDriversList");
                 }
                 return _lstDrivers;
             }
         }
-
         private T FindElementByTag<T>(DependencyObject parent, string tag) where T : FrameworkElement
         {
             return FindElementByTagRecursive<T>(parent, tag);
         }
+
 
         private async void InitializeSystemInfo()
         {
@@ -270,7 +176,6 @@ namespace Yafes
                 txtOSVersion.Text = "Bilinmiyor";
             }
         }
-
         private void InitializeQueueManager()
         {
             queueManager = new InstallationQueueManager(
@@ -280,135 +185,6 @@ namespace Yafes
             );
             queueManager.Initialize();
         }
-
-        // İnternet bağlantısını kontrol et
-        private bool IsInternetAvailable()
-        {
-            try
-            {
-                using (var ping = new Ping())
-                {
-                    var reply = ping.Send("8.8.8.8", 2000); // Google DNS sunucusuna 2 saniye timeout ile ping at
-                    return reply != null && reply.Status == IPStatus.Success;
-                }
-            }
-            catch
-            {
-                return false; // Herhangi bir hata durumunda internet yok olarak kabul et
-            }
-        }
-
-        private void InitializeDrivers()
-        {
-            // Önce listeleri temizle
-            masterDrivers.Clear();
-            drivers.Clear();
-
-            // Sürücüleri ekle
-            masterDrivers.Add(new Yafes.Managers.DriverInfo
-            {
-                Name = "NVIDIA Graphics Driver",
-                Url = "https://tr.download.nvidia.com/Windows/576.40/576.40-desktop-win10-win11-64bit-international-dch-whql.exe",
-                FileName = "nvidia_driver.exe",
-                ProcessName = "setup",
-                InstallArguments = "/s /n",
-                IsZip = false,
-                AlternativeSearchPattern = "nvidia*.exe",
-                ResourceName = "Yafes.Resources.nvidia_driver.exe"
-            });
-
-            masterDrivers.Add(new Yafes.Managers.DriverInfo
-            {
-                Name = "Realtek PCIe LAN Driver",
-                Url = "https://download.msi.com/dvr_exe/mb/realtek_pcielan_w10.zip",
-                FileName = "realtek_lan.zip",
-                ProcessName = "setup",
-                InstallArguments = "/s",
-                IsZip = true,
-                AlternativeSearchPattern = "*lan*.zip",
-                ResourceName = "Yafes.Resources.realtek_pcielan_w10.zip"
-            });
-
-            masterDrivers.Add(new Yafes.Managers.DriverInfo
-            {
-                Name = "Realtek Audio Driver",
-                Url = "https://download.msi.com/dvr_exe/mb/realtek_audio_R.zip",
-                FileName = "realtek_audio.zip",
-                ProcessName = "setup",
-                InstallArguments = "/s",
-                IsZip = true,
-                AlternativeSearchPattern = "*audio*.zip",
-                ResourceName = "Yafes.Resources.realtek_audio_R.zip"
-            });
-        }
-
-        private void InitializePrograms()
-        {
-            // Önce listeleri tamamen temizle
-            masterPrograms.Clear();
-            programs.Clear();
-
-            // Log ekle
-            Console.WriteLine("Program listesi yükleniyor...");
-
-            // Programları ekle
-            masterPrograms.Add(new Yafes.Managers.ProgramInfo
-            {
-                Name = "Discord",
-                Url = "https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64",
-                FileName = "DiscordSetup.exe",
-                ProcessName = "DiscordSetup",
-                InstallArguments = "-s",
-                IsZip = false,
-                AlternativeSearchPattern = "discord*.exe",
-                ResourceName = "Yafes.Resources.DiscordSetup.exe",
-                SpecialInstallation = false
-            });
-
-            masterPrograms.Add(new Yafes.Managers.ProgramInfo
-            {
-                Name = "WinRAR",
-                Url = "https://www.win-rar.com/postdownload.html?&L=5",
-                FileName = "winrar-x64-711tr.exe",
-                ProcessName = "WinRAR",
-                InstallArguments = "/S",
-                IsZip = false,
-                AlternativeSearchPattern = "winrar*.exe",
-                ResourceName = "Yafes.Resources.winrar-x64-711tr.exe",
-                SpecialInstallation = true
-            });
-
-            masterPrograms.Add(new Yafes.Managers.ProgramInfo
-            {
-                Name = "Opera",
-                Url = "https://www.opera.com/tr/computer/thanks?ni=stable&os=windows",
-                FileName = "OperaSetup.exe",
-                ProcessName = "opera",
-                InstallArguments = "--silent --installfolder=\"C:\\Program Files\\Opera\"",
-                IsZip = false,
-                AlternativeSearchPattern = "opera*.exe",
-                ResourceName = "Yafes.Resources.OperaSetup.exe",
-                SpecialInstallation = true
-            });
-
-            // Diğer programlar...
-            masterPrograms.Add(new Yafes.Managers.ProgramInfo
-            {
-                Name = "Steam",
-                Url = "https://cdn.fastly.steamstatic.com/client/installer/SteamSetup.exe",
-                FileName = "steam_installer.exe",
-                ProcessName = "Steam",
-                InstallArguments = "/S",
-                IsZip = false,
-                AlternativeSearchPattern = "steam*.exe",
-                ResourceName = "Yafes.Resources.steam_installer.exe",
-                SpecialInstallation = false
-            });
-
-            // Program sayısını logla
-            Console.WriteLine($"Toplam {masterPrograms.Count} program yüklendi.");
-        }
-
         // Gömülü kaynakları listele ve log'a yaz (DEBUG amaçlı)
         private void ListEmbeddedResources()
         {
@@ -433,92 +209,23 @@ namespace Yafes
             }
         }
 
-        /// <summary>
-        /// Ana kurulum butonu - artık InstallationManager kullanıyor
-        /// </summary>
-        private async void btnInstall_Click(object sender, RoutedEventArgs e)
-        {
-            if (installationManager?.IsInstalling == true)
-            {
-                MessageBox.Show("Kurulum zaten devam ediyor!", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            try
-            {
-                // Log'u temizle ve başlangıç mesajını yaz
-                txtLog.Clear();
-                txtLog.AppendText("Yafes Kurulum Aracı başlatıldı\n");
-
-                // ✅ ARKAPLAN DOSYASI KONTROLÜ VE AYARLAMA
-                txtLog.AppendText("\n🎨 Arkaplan ayarlanıyor...\n");
-                await SetYafesWallpaperAsync();
-
-                txtLog.AppendText("\n🚀 Kurulum işlemleri başlatılıyor...\n");
-
-                // Butonları devre dışı bırak
-                btnInstall.IsEnabled = false;
-                btnAddDriver.IsEnabled = false;
-
-                // Mevcut kategorideki seçimleri kaydet
-                SaveCurrentSelections(currentCategory);
-
-                // Seçili öğeleri topla
-                var selectedDrivers = new List<Yafes.Managers.DriverInfo>();
-                var selectedPrograms = new List<Yafes.Managers.ProgramInfo>();
-
-                if (currentCategory == "Sürücüler")
-                {
-                    foreach (ListBoxItem item in lstDrivers.Items)
-                    {
-                        if (item.Content is CheckBox checkBox && checkBox.IsChecked == true && checkBox.Tag is Yafes.Managers.DriverInfo driver)
-                        {
-                            selectedDrivers.Add(driver);
-                        }
-                    }
-                }
-                else if (currentCategory == "Programlar")
-                {
-                    foreach (ListBoxItem item in lstDrivers.Items)
-                    {
-                        if (item.Content is CheckBox checkBox && checkBox.IsChecked == true && checkBox.Tag is Yafes.Managers.ProgramInfo program)
-                        {
-                            selectedPrograms.Add(program);
-                        }
-                    }
-                }
-
-                // InstallationManager ile kurulumu başlat
-                installationManager.PrepareInstallation(selectedDrivers, selectedPrograms);
-            }
-            catch (Exception ex)
-            {
-                btnInstall.IsEnabled = true;
-                btnAddDriver.IsEnabled = true;
-                MessageBox.Show("Hata: " + ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private async Task SetYafesWallpaperAsync()
+        // İnternet bağlantısını kontrol et
+        private bool IsInternetAvailable()
         {
             try
             {
-                await Task.Run(() =>
+                using (var ping = new Ping())
                 {
-                    bool success = WallpaperManager.SetYafesWallpaper((message) =>
-                    {
-                        // UI thread'de log'a yaz
-                        Dispatcher.Invoke(() => txtLog.AppendText(message + "\n"));
-                    });
-                });
+                    var reply = ping.Send("8.8.8.8", 2000); // Google DNS sunucusuna 2 saniye timeout ile ping at
+                    return reply != null && reply.Status == IPStatus.Success;
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                txtLog.AppendText($"Arkaplan ayarlama hatası: {ex.Message}\n");
+                return false; // Herhangi bir hata durumunda internet yok olarak kabul et
             }
         }
 
-        // UI metodları (kategori, görünüm, vs.) - bunlar değişmeden kalacak
         private void InitializeCategories()
         {
             try
@@ -528,6 +235,13 @@ namespace Yafes
                 btnProgramsCategory = FindName("btnProgramsCategory") as Button;
                 btnGamesCategory = FindName("btnGamesCategory") as Button;
                 btnToolsCategory = FindName("btnToolsCategory") as Button;
+
+                // Buton kontrolü
+                if (btnDriverCategory == null || btnProgramsCategory == null ||
+                    btnGamesCategory == null || btnToolsCategory == null)
+                {
+                    txtLog.AppendText("⚠️ Bazı kategori butonları bulunamadı!\n");
+                }
 
                 // ✅ DOĞRU TAG EŞLEŞMELERİ:
                 if (btnProgramsCategory != null)
@@ -552,24 +266,78 @@ namespace Yafes
                 if (clickedButton == null) return;
 
                 // MEVCUT: Kurulum kontrol
-                if (installationManager?.IsInstalling == true)
+                if (installationManager.IsInstalling)
                 {
                     txtLog.AppendText("⚠️ Kurulum devam ediyor, kategori değişimi engellendi\n");
                     return;
                 }
 
-                // Diğer kategori işlemleri...
+                txtLog.AppendText($"🔘 Buton tıklandı: {clickedButton.Content}\n");
+
+                // ✅ GAMES BUTONU - GamesPanelManager'a delege et (slide animation ile)
                 if (clickedButton == btnGamesCategory)
                 {
                     if (gamesPanelManager != null)
                     {
                         bool success = await gamesPanelManager.ToggleGamesPanel();
-                        // Games panel işlemleri...
+
+                        if (success)
+                        {
+                            // Panel durumuna göre kategori ayarla
+                            if (gamesPanelManager.IsGamesVisible)
+                            {
+                                isGamesVisible = true;
+                                SetSelectedCategory("Games");
+                                txtLog.AppendText("🎮 Games modu aktif - Sol sidebar gizlendi, Games panel genişletildi\n");
+                                txtLog.AppendText("💡 Daha geniş oyun kataloğu için sidebar slide edildi!\n");
+                            }
+                            else
+                            {
+                                isGamesVisible = false;
+                                SetSelectedCategory("Programlar");
+                                txtLog.AppendText("🔄 Normal mod - Sol sidebar gösterildi, Terminal restore edildi\n");
+                            }
+                        }
+                        else
+                        {
+                            txtLog.AppendText("❌ Games panel toggle işlemi başarısız!\n");
+                        }
+                    }
+                    else
+                    {
+                        txtLog.AppendText("❌ GamesPanelManager bulunamadı!\n");
                     }
                 }
                 else
                 {
-                    // Normal kategori geçişleri
+                    // ✅ DİĞER BUTONLAR (Programs, Drivers, Tools)
+                    txtLog.AppendText($"📦 Normal kategori butonu: {clickedButton.Content}\n");
+
+                    // ✅ ENHANCED: Games açıksa kapat - DÜZELTME: ToggleGamesPanel kullan
+                    if (isGamesVisible && gamesPanelManager != null)
+                    {
+                        txtLog.AppendText("🔴 Games panel normal kategoriye geçiş için kapatılıyor...\n");
+                        txtLog.AppendText("➡️ Sol sidebar geri getiriliyor...\n");
+
+                        // ✅ DÜZELTME: Mevcut ToggleGamesPanel metodunu kullan (Games paneli kapalıysa açar, açıksa kapatır)
+                        bool closeSuccess = await gamesPanelManager.ToggleGamesPanel();
+
+                        if (closeSuccess)
+                        {
+                            isGamesVisible = false;
+                            txtLog.AppendText("✅ Games panel kapatıldı, sidebar restore edildi, normal kategoriye geçiliyor\n");
+                        }
+                        else
+                        {
+                            txtLog.AppendText("⚠️ Games panel kapatma işlemi başarısız, yine de devam ediliyor\n");
+                            isGamesVisible = false;
+
+                            // Force reset - acil durum
+                            gamesPanelManager.ForceReset();
+                        }
+                    }
+
+                    // MEVCUT: Normal kategori geçişleri (orijinal kod korundu)
                     if (clickedButton == btnDriverCategory)
                     {
                         UpdateCategoryView("Programlar");
@@ -582,32 +350,161 @@ namespace Yafes
                         SetSelectedCategory("Sürücüler");
                         txtLog.AppendText("📦 Sürücüler kategorisi seçildi\n");
                     }
+                    else if (clickedButton == btnToolsCategory)
+                    {
+                        currentCategory = "Tools";
+                        SetSelectedCategory("Tools");
+                        if (lstDrivers != null)
+                        {
+                            lstDrivers.Items.Clear();
+                        }
+                        txtLog.AppendText("🔧 Tools kategorisi seçildi\n");
+                    }
                 }
+
+                txtLog.AppendText($"✅ Kategori işlemi tamamlandı - Aktif kategori: {currentCategory}\n");
             }
             catch (Exception ex)
             {
                 txtLog.AppendText($"❌ CategoryButton_Click hatası: {ex.Message}\n");
+
+                // ENHANCED: Hata durumunda Games panel'i güvenli sıfırla
+                if (gamesPanelManager != null)
+                {
+                    txtLog.AppendText("🚨 Hata nedeniyle GamesPanelManager force reset yapılıyor...\n");
+                    gamesPanelManager.ForceReset();
+                    isGamesVisible = false;
+                }
+            }
+        }
+        private void DebugXAMLStructure(DependencyObject parent, int depth)
+        {
+            if (parent == null || depth > 3) return; // Max 3 seviye
+
+            string indent = new string(' ', depth * 2);
+            string elementInfo = "";
+
+            if (parent is FrameworkElement element)
+            {
+                elementInfo = $"{element.GetType().Name}";
+                if (!string.IsNullOrEmpty(element.Name))
+                    elementInfo += $" Name='{element.Name}'";
+                if (element.Tag != null)
+                    elementInfo += $" Tag='{element.Tag}'";
+            }
+            else
+            {
+                elementInfo = parent.GetType().Name;
+            }
+
+            txtLog.AppendText($"🔍 {indent}{elementInfo}\\n");
+
+            // Alt elementleri de göster
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                DebugXAMLStructure(child, depth + 1);
             }
         }
 
-        // Diğer UI metodları...
+        public static T FindChild<T>(DependencyObject parent, string childName) where T : DependencyObject
+        {
+            if (parent == null) return null;
+
+            T foundChild = null;
+            int childrenCount = VisualTreeHelper.GetChildrenCount(parent);
+
+            for (int i = 0; i < childrenCount; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+
+                T childType = child as T;
+                if (childType == null)
+                {
+                    foundChild = FindChild<T>(child, childName);
+                    if (foundChild != null) break;
+                }
+                else if (!string.IsNullOrEmpty(childName))
+                {
+                    var frameworkElement = child as FrameworkElement;
+                    if (frameworkElement != null && frameworkElement.Name == childName)
+                    {
+                        foundChild = (T)child;
+                        break;
+                    }
+                }
+                else
+                {
+                    foundChild = (T)child;
+                    break;
+                }
+            }
+
+            return foundChild;
+        }
+
+
+        private T FindElementByTagRecursive<T>(DependencyObject parent, string tag) where T : FrameworkElement
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+
+                if (child is T element && element.Tag?.ToString() == tag)
+                {
+                    return element;
+                }
+
+                var result = FindElementByTagRecursive<T>(child, tag);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        public void AddLog(string message)
+        {
+            try
+            {
+                if (txtLog.Dispatcher.CheckAccess())
+                {
+                    txtLog.AppendText(message + "\n");
+                    txtLog.ScrollToEnd();
+                }
+                else
+                {
+                    txtLog.Dispatcher.Invoke(() =>
+                    {
+                        txtLog.AppendText(message + "\n");
+                        txtLog.ScrollToEnd();
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"AddLog hatası: {ex.Message}");
+            }
+        }
+
         private void UpdateCategoryView(string category)
         {
             try
             {
+                // Aynı kategoriye tekrar tıklandıysa hiçbir şey yapma
                 if (currentCategory == category) return;
 
+                // Mevcut seçimleri kaydet
                 if (!string.IsNullOrEmpty(currentCategory))
                 {
                     SaveCurrentSelections(currentCategory);
                 }
 
+                // Kategori değiştir
                 currentCategory = category;
                 RefreshListWithSavedSelections(category);
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ Kategori güncelleme hatası: {ex.Message}\n");
+                txtLog.AppendText($"❌ Kategori güncelleme hatası: {ex.Message}\\n");
             }
         }
 
@@ -658,14 +555,30 @@ namespace Yafes
                             btnDriverCategory.Foreground = selectedColor;
                         }
                         break;
+                    case "Games":
+                        if (btnGamesCategory != null)
+                        {
+                            btnGamesCategory.Tag = "Selected";
+                            btnGamesCategory.Foreground = selectedColor;
+                        }
+                        break;
+                    case "Tools":
+                        if (btnToolsCategory != null)
+                        {
+                            btnToolsCategory.Tag = "Selected";
+                            btnToolsCategory.Foreground = selectedColor;
+                        }
+                        break;
                 }
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ Buton güncelleme hatası: {ex.Message}\n");
+                txtLog.AppendText($"❌ Buton güncelleme hatası: {ex.Message}\\n");
             }
         }
 
+
+        // Mevcut seçimleri sakla
         private void SaveCurrentSelections(string category)
         {
             Dictionary<string, bool> selections = new Dictionary<string, bool>();
@@ -683,6 +596,7 @@ namespace Yafes
             categorySelections[category] = selections;
         }
 
+        // Liste içeriğini kaydedilmiş seçimlerle yenile
         private void RefreshListWithSavedSelections(string category)
         {
             try
@@ -699,7 +613,7 @@ namespace Yafes
 
                 if (category == "Sürücüler")
                 {
-                    foreach (var driver in masterDrivers)
+                    foreach (var driver in installationManager.MasterDrivers)
                     {
                         bool isChecked = true;
                         if (savedSelections != null && savedSelections.ContainsKey(driver.Name))
@@ -727,7 +641,7 @@ namespace Yafes
                 }
                 else if (category == "Programlar")
                 {
-                    foreach (var program in masterPrograms)
+                    foreach (var program in installationManager.MasterPrograms)
                     {
                         bool isChecked = true;
                         if (savedSelections != null && savedSelections.ContainsKey(program.Name))
@@ -756,95 +670,150 @@ namespace Yafes
             }
             catch (Exception ex)
             {
-                txtLog.AppendText($"❌ Liste yenileme hatası: {ex.Message}\n");
+                txtLog.AppendText($"❌ Liste yenileme hatası: {ex.Message}\\n");
             }
         }
 
-        public void AddLog(string message)
+        private async void btnInstall_Click(object sender, RoutedEventArgs e)
         {
+            if (installationManager.IsInstalling)
+            {
+                MessageBox.Show("Kurulum zaten devam ediyor!", "Bilgi", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
             try
             {
-                if (txtLog.Dispatcher.CheckAccess())
+                // Log'u temizle ve başlangıç mesajını yaz
+                txtLog.Clear();
+                txtLog.AppendText("Yafes Kurulum Aracı başlatıldı\n");
+
+                // ✅ ARKAPLAN DOSYASI KONTROLÜ VE AYARLAMA
+                txtLog.AppendText("\n🎨 Arkaplan ayarlanıyor...\n");
+
+                // Farklı dosya yollarını dene
+                string[] possiblePaths = {
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "GifIcons", "walpaper.jpg"),
+            Path.Combine(Environment.CurrentDirectory, "Resources", "GifIcons", "walpaper.jpg"),
+            @"C:\Users\Menesam\source\repos\Yafes\Resources\GifIcons\walpaper.jpg",
+            Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "Resources", "GifIcons", "walpaper.jpg")
+        };
+
+                string foundPath = null;
+                foreach (string path in possiblePaths)
                 {
-                    txtLog.AppendText(message + "\n");
-                    txtLog.ScrollToEnd();
+                    txtLog.AppendText($"🔍 Kontrol ediliyor: {path}\n");
+                    if (File.Exists(path))
+                    {
+                        foundPath = path;
+                        txtLog.AppendText($"✅ Dosya bulundu: {path}\n");
+                        break;
+                    }
+                    else
+                    {
+                        txtLog.AppendText($"❌ Dosya bulunamadı: {path}\n");
+                    }
+                }
+
+                if (foundPath != null)
+                {
+                    // WallpaperManager ile arkaplanı değiştir ve log mesajlarını göster
+                    txtLog.AppendText("🔧 YAFES WallpaperManager ile arkaplan ayarlanıyor...\n");
+
+                    await Task.Run(() =>
+                    {
+                        try
+                        {
+                            // WallpaperManager'ı logCallback ile kullan
+                            bool success = WallpaperManager.SetWallpaper(foundPath, WallpaperManager.WallpaperStyle.Fill);
+
+                            Dispatcher.Invoke(() =>
+                            {
+                                if (success)
+                                {
+                                    txtLog.AppendText($"✅ Arkaplan başarıyla değiştirildi!\n");
+                                    txtLog.AppendText($"📁 Dosya: {Path.GetFileName(foundPath)}\n");
+                                    txtLog.AppendText($"🎨 Stil: Fill (Doldur)\n");
+                                }
+                                else
+                                {
+                                    txtLog.AppendText($"❌ SystemParametersInfo başarısız oldu!\n");
+                                }
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Dispatcher.Invoke(() => txtLog.AppendText($"❌ API Hatası: {ex.Message}\n"));
+                        }
+                    });
                 }
                 else
                 {
-                    txtLog.Dispatcher.Invoke(() =>
-                    {
-                        txtLog.AppendText(message + "\n");
-                        txtLog.ScrollToEnd();
-                    });
+                    txtLog.AppendText("❌ Hiçbir yolda arkaplan dosyası bulunamadı!\n");
                 }
+
+                txtLog.AppendText("\n🚀 Kurulum işlemleri başlatılıyor...\n");
+
+                // Seçili driver ve program listelerini al
+                var selectedDrivers = GetSelectedDrivers();
+                var selectedPrograms = GetSelectedPrograms();
+
+                // InstallationManager ile kurulumu başlat
+                installationManager.PrepareInstallation(selectedDrivers, selectedPrograms);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"AddLog hatası: {ex.Message}");
+                MessageBox.Show("Hata: " + ex.Message, "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        private T FindElementByTagRecursive<T>(DependencyObject parent, string tag) where T : FrameworkElement
+        private List<InstallationManager.DriverInfo> GetSelectedDrivers()
         {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            var selectedDrivers = new List<InstallationManager.DriverInfo>();
+
+            if (currentCategory == "Sürücüler")
             {
-                var child = VisualTreeHelper.GetChild(parent, i);
-
-                if (child is T element && element.Tag?.ToString() == tag)
+                foreach (ListBoxItem item in lstDrivers.Items)
                 {
-                    return element;
+                    if (item.Content is CheckBox checkBox && checkBox.IsChecked == true && checkBox.Tag is InstallationManager.DriverInfo driver)
+                    {
+                        selectedDrivers.Add(driver);
+                    }
                 }
-
-                var result = FindElementByTagRecursive<T>(child, tag);
-                if (result != null) return result;
             }
-            return null;
+
+            return selectedDrivers;
         }
 
-        // Diğer Event Handler'lar...
+        private List<InstallationManager.ProgramInfo> GetSelectedPrograms()
+        {
+            var selectedPrograms = new List<InstallationManager.ProgramInfo>();
+
+            if (currentCategory == "Programlar")
+            {
+                foreach (ListBoxItem item in lstDrivers.Items)
+                {
+                    if (item.Content is CheckBox checkBox && checkBox.IsChecked == true && checkBox.Tag is InstallationManager.ProgramInfo program)
+                    {
+                        selectedPrograms.Add(program);
+                    }
+                }
+            }
+
+            return selectedPrograms;
+        }
+
         private void btnFolder_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                string folderPath = currentCategory == "Sürücüler" ? "C:\\Drivers" : "C:\\Programs";
-
-                if (!Directory.Exists(folderPath))
-                    Directory.CreateDirectory(folderPath);
-
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = folderPath,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                txtLog.AppendText("Klasör açılırken hata: " + ex.Message + "\n");
-            }
+            installationManager.OpenCategoryFolder(currentCategory);
         }
 
         private void btnAddDriver_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                OpenFileDialog openFileDialog = new OpenFileDialog();
-                openFileDialog.Filter = "Kurulum Dosyaları (*.exe;*.msi;*.zip)|*.exe;*.msi;*.zip|Tüm Dosyalar (*.*)|*.*";
+            installationManager.AddUserDefinedItem(currentCategory);
 
-                if (currentCategory == "Sürücüler")
-                {
-                    openFileDialog.Title = "Sürücü Seç";
-                    // Sürücü ekleme mantığı...
-                }
-                else if (currentCategory == "Programlar")
-                {
-                    openFileDialog.Title = "Program Seç";
-                    // Program ekleme mantığı...
-                }
-            }
-            catch (Exception ex)
-            {
-                txtLog.AppendText("Dosya ekleme hatası: " + ex.Message + "\n");
-            }
+            // Liste güncelle
+            RefreshListWithSavedSelections(currentCategory);
         }
 
         private void chkRestart_CheckedChanged(object sender, RoutedEventArgs e)
@@ -859,7 +828,7 @@ namespace Yafes
             }
         }
 
-        // Window Controls
+        // Window drag functionality
         private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ButtonState == MouseButtonState.Pressed)
@@ -868,22 +837,20 @@ namespace Yafes
             }
         }
 
+        // Minimize window
         private void MinimizeWindow_Click(object sender, RoutedEventArgs e)
         {
             this.WindowState = WindowState.Minimized;
         }
 
+        // Close window
         private void CloseWindow_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
         }
-
         private void txtLog_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // Empty event handler
-        }
 
-        // Diğer event handler'lar (GameSearchBox, vs.) burada olacak...
-        // Bu metodlar değişmeden kalabilir
+        }
     }
 }

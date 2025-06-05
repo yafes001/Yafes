@@ -12,7 +12,6 @@ namespace Yafes
 {
     /// <summary>
     /// Kurulum kuyruğu yöneticisi - Maksimum 10 öğe gösterir, ScrollViewer ile
-    /// InstallationManager modelleri ile uyumlu versiyon
     /// </summary>
     public class InstallationQueueManager
     {
@@ -80,9 +79,9 @@ namespace Yafes
         }
 
         /// <summary>
-        /// Kurulum kuyruğunu oluşturur - InstallationManager modelleri ile
+        /// Kurulum kuyruğunu oluşturur - InstallationManager tiplerini kullanır
         /// </summary>
-        public void CreateQueue(List<Yafes.Managers.DriverInfo> drivers, List<Yafes.Managers.ProgramInfo> programs)
+        public void CreateQueue(List<InstallationManager.DriverInfo> drivers, List<InstallationManager.ProgramInfo> programs)
         {
             // SADECE ANA KUYRUĞU TEMİZLE - Görünür kuyrugu DOKUNMA!
             installationQueue.Clear();
@@ -95,7 +94,7 @@ namespace Yafes
                 {
                     Name = driver.Name,
                     Type = "Sürücü",
-                    Status = ConvertStatus(driver.Status),
+                    Status = InstallationStatus.Waiting,
                     OriginalItem = driver
                 };
                 installationQueue.Enqueue(item);
@@ -108,7 +107,7 @@ namespace Yafes
                 {
                     Name = program.Name,
                     Type = "Program",
-                    Status = ConvertStatus(program.Status),
+                    Status = InstallationStatus.Waiting,
                     OriginalItem = program
                 };
                 installationQueue.Enqueue(item);
@@ -133,24 +132,6 @@ namespace Yafes
         }
 
         /// <summary>
-        /// InstallationManager.InstallationStatus'u QueueManager.InstallationStatus'a dönüştürür
-        /// </summary>
-        private QueueInstallationStatus ConvertStatus(Yafes.Managers.InstallationStatus status)
-        {
-            return status switch
-            {
-                Yafes.Managers.InstallationStatus.Waiting => QueueInstallationStatus.Waiting,
-                Yafes.Managers.InstallationStatus.Downloading => QueueInstallationStatus.Installing,
-                Yafes.Managers.InstallationStatus.Extracting => QueueInstallationStatus.Installing,
-                Yafes.Managers.InstallationStatus.Installing => QueueInstallationStatus.Installing,
-                Yafes.Managers.InstallationStatus.Completed => QueueInstallationStatus.Completed,
-                Yafes.Managers.InstallationStatus.Failed => QueueInstallationStatus.Completed, // Başarısız olanları da tamamlanmış sayıyoruz
-                Yafes.Managers.InstallationStatus.Cancelled => QueueInstallationStatus.Completed,
-                _ => QueueInstallationStatus.Waiting
-            };
-        }
-
-        /// <summary>
         /// Bir kurulum başladığında çağrılır
         /// </summary>
         public void StartInstallation(string itemName)
@@ -161,7 +142,7 @@ namespace Yafes
                 // EN ALTTAKİ "Yüklendi" durumundaki öğeyi bul ve sil (LIFO mantığı)
                 for (int i = visibleQueue.Count - 1; i >= 0; i--)
                 {
-                    if (visibleQueue[i].Status == QueueInstallationStatus.Completed)
+                    if (visibleQueue[i].Status == InstallationStatus.Completed)
                     {
                         var removedItem = visibleQueue[i];
                         visibleQueue.RemoveAt(i);
@@ -189,7 +170,7 @@ namespace Yafes
             var item = visibleQueue.FirstOrDefault(x => x.Name == itemName);
             if (item != null)
             {
-                item.Status = QueueInstallationStatus.Installing;
+                item.Status = InstallationStatus.Installing;
                 item.StartTime = DateTime.Now;
                 currentlyInstalling = item;
 
@@ -206,7 +187,7 @@ namespace Yafes
             var item = visibleQueue.FirstOrDefault(x => x.Name == itemName);
             if (item != null)
             {
-                item.Status = QueueInstallationStatus.Completed;
+                item.Status = InstallationStatus.Completed;
                 item.IsCompleted = true;
                 item.CompletionTime = DateTime.Now;
 
@@ -219,6 +200,8 @@ namespace Yafes
                 LogMessage($"[KUYRUK] {item.Name} kurulumu tamamlandı");
             }
         }
+
+
 
         /// <summary>
         /// Görünür kuyruğu günceller
@@ -301,7 +284,7 @@ namespace Yafes
             // YAFES temasına uygun durumlar
             switch (item.Status)
             {
-                case QueueInstallationStatus.Waiting:
+                case InstallationStatus.Waiting:
                     statusIcon.Text = "⏸";
                     statusIcon.Foreground = new SolidColorBrush(Color.FromRgb(204, 204, 204)); // #CCCCCC
                     nameText.Foreground = new SolidColorBrush(Color.FromRgb(204, 204, 204)); // #CCCCCC
@@ -310,7 +293,7 @@ namespace Yafes
                     itemBorder.Background = Brushes.Transparent;
                     break;
 
-                case QueueInstallationStatus.Installing:
+                case InstallationStatus.Installing:
                     statusIcon.Text = "⚡";
                     statusIcon.Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0)); // #FFA500 (YAFES orange)
                     nameText.Foreground = new SolidColorBrush(Color.FromRgb(0, 245, 255)); // #00F5FF (YAFES cyan)
@@ -319,7 +302,7 @@ namespace Yafes
                     itemBorder.Background = new SolidColorBrush(Color.FromArgb(26, 0, 245, 255)); // Hafif cyan glow (Alpha, R, G, B)
                     break;
 
-                case QueueInstallationStatus.Completed:
+                case InstallationStatus.Completed:
                     statusIcon.Text = "✓";
                     statusIcon.Foreground = new SolidColorBrush(Color.FromRgb(0, 245, 255)); // #00F5FF (YAFES cyan)
                     nameText.Foreground = new SolidColorBrush(Color.FromRgb(0, 245, 255)); // #00F5FF (YAFES cyan)
@@ -337,7 +320,7 @@ namespace Yafes
 
             itemBorder.MouseLeave += (s, e) =>
             {
-                if (item.Status != QueueInstallationStatus.Installing)
+                if (item.Status != InstallationStatus.Installing)
                 {
                     itemBorder.Background = Brushes.Transparent;
                 }
@@ -426,8 +409,8 @@ namespace Yafes
         }
     }
 
-    // Kuyruk için basitleştirilmiş kurulum durumu enum
-    public enum QueueInstallationStatus
+    // Kurulum durumu enum
+    public enum InstallationStatus
     {
         Waiting,    // Bekliyor
         Installing, // Yükleniyor
@@ -438,8 +421,8 @@ namespace Yafes
     public class InstallationItem
     {
         public string Name { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty; // "Sürücü" veya "Program"
-        public QueueInstallationStatus Status { get; set; } = QueueInstallationStatus.Waiting;
+        public string Type { get; set; } = string.Empty; // "Driver" veya "Program"
+        public InstallationStatus Status { get; set; } = InstallationStatus.Waiting;
         public DateTime StartTime { get; set; }
         public DateTime CompletionTime { get; set; }
         public bool IsCompleted { get; set; } = false;
