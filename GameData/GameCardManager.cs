@@ -342,66 +342,96 @@ namespace Yafes.Managers
         {
             try
             {
+                MessageBox.Show("CARD CLICK EVENT BAŞLADI!", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
+
                 if (sender is Border card)
                 {
+                    MessageBox.Show("Card cast başarılı!", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
+
                     string gameName = "Unknown Game";
                     Yafes.Models.GameData gameData = null;
-
-                    // GameData'yı al
-                    if (card.Tag is Yafes.Models.GameData data)
-                    {
-                        gameData = data;
-                        gameName = gameData.Name;
-                    }
-                    else
-                    {
-                        // Fallback: StackPanel'den oyun adını al
-                        var stackPanel = card.Child as StackPanel;
-                        if (stackPanel?.Children.Count >= 2 && stackPanel.Children[1] is TextBlock gameNameTextBlock)
-                        {
-                            gameName = gameNameTextBlock.Text;
-                        }
-                    }
 
                     // 1. Immediate visual feedback
                     CreateShakeEffect(card);
 
-                    // 2. Eğer gerçek GameData varsa silent installation başlat
-                    if (gameData != null)
+                    // 2. GameData'yı al (önce Tag'den)
+                    if (card.Tag is Yafes.Models.GameData data)
                     {
-                        // Card'ın görsel durumunu "installing" moduna al
-                        SetCardInstalling(card, true);
+                        gameData = data;
+                        gameName = gameData.Name;
+                        MessageBox.Show($"GameData Tag'den bulundu: {gameName}", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Tag'de GameData yok, overlay'den çıkarılıyor...", "Debug", MessageBoxButton.OK, MessageBoxImage.Warning);
 
-                        // Silent installation başlat
-                        bool installationSuccess = await GameSetup.StartSilentInstallation(gameData, _queueManager);
+                        // 3. Card'ın overlay text'inden oyun adını al
+                        gameName = ExtractGameNameFromCard(card);
+                        MessageBox.Show($"Overlay'den çıkarılan oyun adı: '{gameName}'", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                        if (installationSuccess)
+                        // GameData olmadığı için mock oluştur
+                        if (!string.IsNullOrEmpty(gameName) && gameName != "Unknown Game")
                         {
-                            // Installation başarılı - card'ı "installed" moduna al
-                            SetCardInstalled(card, true);
-
-                            // Success glow effect
-                            CreateSuccessGlowEffect(card);
+                            gameData = CreateMockGameData(gameName);
+                            MessageBox.Show($"Mock GameData oluşturuldu: {gameName}", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else
                         {
-                            // Installation başarısız - card'ı normal moduna döndür
-                            SetCardInstalling(card, false);
+                            MessageBox.Show("Oyun adı çıkarılamadı!", "Debug", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
 
-                            // Error shake effect
+                    // 4. Eğer oyun adı alındıysa silent installation başlat
+                    if (gameData != null && !string.IsNullOrEmpty(gameName) && gameName != "Unknown Game")
+                    {
+                        MessageBox.Show($"Installation başlatılıyor: {gameName}", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        // Card'ın görsel durumunu "installing" moduna al
+                        SetCardInstalling(card, true);
+
+                        try
+                        {
+                            MessageBox.Show("GameSetup.StartSilentInstallation çağrılıyor...", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                            // Silent installation başlat
+                            bool installationSuccess = await Yafes.GameData.GameSetup.StartSilentInstallation(gameData, _queueManager);
+
+                            MessageBox.Show($"Installation sonucu: {installationSuccess}", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                            if (installationSuccess)
+                            {
+                                // Installation başarılı - card'ı "installed" moduna al
+                                SetCardInstalled(card, true);
+                                CreateSuccessGlowEffect(card);
+                            }
+                            else
+                            {
+                                // Installation başarısız - card'ı normal moduna döndür
+                                SetCardInstalling(card, false);
+                                CreateErrorShakeEffect(card);
+                            }
+                        }
+                        catch (Exception installEx)
+                        {
+                            MessageBox.Show($"Installation Exception: {installEx.Message}", "HATA", MessageBoxButton.OK, MessageBoxImage.Error);
+                            SetCardInstalling(card, false);
                             CreateErrorShakeEffect(card);
                         }
                     }
                     else
                     {
-                        // Default games (Steam, Epic, etc.) için - platform açma uyarısı
+                        MessageBox.Show($"Platform oyunu olarak algılandı: '{gameName}'", "Debug", MessageBoxButton.OK, MessageBoxImage.Warning);
                         ShowPlatformLaunchMessage(gameName);
                     }
+                }
+                else
+                {
+                    MessageBox.Show("Sender Border değil!", "HATA", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"GameCard_Click error: {ex.Message}");
+                MessageBox.Show($"GameCard_Click ANA HATA: {ex.Message}", "HATA", MessageBoxButton.OK, MessageBoxImage.Error);
 
                 // Error durumunda card'ı normale döndür
                 if (sender is Border errorCard)
@@ -409,6 +439,142 @@ namespace Yafes.Managers
                     SetCardInstalling(errorCard, false);
                     CreateErrorShakeEffect(errorCard);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 📝 Card'ın overlay text'inden oyun adını çıkarır - FIXED VERSION
+        /// </summary>
+        private string ExtractGameNameFromCard(Border card)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("🔍 Extracting game name from card overlay...");
+
+                // Card içindeki Grid'i al
+                if (card.Child is Grid mainGrid)
+                {
+                    System.Diagnostics.Debug.WriteLine($"📋 Found main grid with {mainGrid.Children.Count} children");
+
+                    // Grid içindeki tüm child'ları kontrol et
+                    foreach (var child in mainGrid.Children)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🔍 Checking child: {child.GetType().Name}");
+
+                        // TextOverlay Border'ını bul (Name == "TextOverlay")
+                        if (child is Border overlay && overlay.Name == "TextOverlay")
+                        {
+                            System.Diagnostics.Debug.WriteLine($"✅ Found TextOverlay border - Opacity: {overlay.Opacity}");
+
+                            // Overlay içindeki StackPanel'i al
+                            if (overlay.Child is StackPanel textStack)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"📋 Found text stack with {textStack.Children.Count} children");
+
+                                // İLK TEXTBLOCK = OYUN ADI (CreateGameCard'da ilk eklenen)
+                                if (textStack.Children.Count > 0 && textStack.Children[0] is TextBlock gameNameBlock)
+                                {
+                                    var gameName = gameNameBlock.Text?.Trim();
+                                    System.Diagnostics.Debug.WriteLine($"🎯 First TextBlock text: '{gameName}'");
+                                    System.Diagnostics.Debug.WriteLine($"   FontWeight: {gameNameBlock.FontWeight}");
+                                    System.Diagnostics.Debug.WriteLine($"   FontSize: {gameNameBlock.FontSize}");
+
+                                    if (!string.IsNullOrEmpty(gameName))
+                                    {
+                                        System.Diagnostics.Debug.WriteLine($"✅ Game name extracted from overlay: '{gameName}'");
+                                        return gameName;
+                                    }
+                                }
+
+                                // Fallback: Tüm TextBlock'ları kontrol et
+                                System.Diagnostics.Debug.WriteLine("🔄 Fallback: Checking all TextBlocks...");
+                                foreach (var stackChild in textStack.Children)
+                                {
+                                    if (stackChild is TextBlock textBlock)
+                                    {
+                                        var text = textBlock.Text?.Trim();
+                                        System.Diagnostics.Debug.WriteLine($"📝 TextBlock: '{text}', Bold: {textBlock.FontWeight == FontWeights.Bold}");
+
+                                        // Bold olan ve size info içermeyen = oyun adı
+                                        if (!string.IsNullOrEmpty(text) &&
+                                            textBlock.FontWeight == FontWeights.Bold &&
+                                            !text.Contains("MB") && !text.Contains("GB"))
+                                        {
+                                            System.Diagnostics.Debug.WriteLine($"✅ Game name found (fallback): '{text}'");
+                                            return text;
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine("❌ TextOverlay child is not StackPanel");
+                                System.Diagnostics.Debug.WriteLine($"   Actual child type: {overlay.Child?.GetType().Name ?? "null"}");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ Card child is not Grid");
+                    System.Diagnostics.Debug.WriteLine($"   Actual child type: {card.Child?.GetType().Name ?? "null"}");
+
+                    // Fallback: Default games için StackPanel kontrolü
+                    if (card.Child is StackPanel stackPanel)
+                    {
+                        System.Diagnostics.Debug.WriteLine("🔄 Fallback: Checking default game StackPanel...");
+
+                        foreach (var child in stackPanel.Children)
+                        {
+                            if (child is TextBlock textBlock && textBlock.FontWeight == FontWeights.Bold)
+                            {
+                                var text = textBlock.Text?.Trim();
+                                System.Diagnostics.Debug.WriteLine($"📝 Default game TextBlock: '{text}'");
+
+                                if (!string.IsNullOrEmpty(text) && !text.Contains("MB") && !text.Contains("GB"))
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"✅ Default game name found: '{text}'");
+                                    return text;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine("❌ No game name found in card");
+                return "Unknown Game";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ ExtractGameNameFromCard error: {ex.Message}");
+                return "Unknown Game";
+            }
+        }
+
+        /// <summary>
+        /// 🎭 Mock GameData oluşturur (Tag'de GameData olmayan card'lar için)
+        /// </summary>
+        private Yafes.Models.GameData CreateMockGameData(string gameName)
+        {
+            try
+            {
+                return new Yafes.Models.GameData
+                {
+                    Id = $"mock_{gameName.Replace(" ", "_").ToLower()}",
+                    Name = gameName,
+                    ImageName = "",
+                    SetupPath = "",
+                    Category = "General",
+                    Size = "Unknown",
+                    IsInstalled = false,
+                    LastPlayed = DateTime.MinValue,
+                    Description = $"Mock game data for {gameName}"
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ CreateMockGameData error: {ex.Message}");
+                return null;
             }
         }
 

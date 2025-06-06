@@ -3,14 +3,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
-using Yafes.Models;
 using Yafes.Managers;
+using System.Linq;
+using System.Threading;
 
 namespace Yafes.GameData
 {
     /// <summary>
     /// Silent Game Installation Manager
-    /// Card click → Silent installation → Queue integration
+    /// Specific Path: "Game" Drive → "GameSetups" Folder → Game Folder → setup.exe
     /// </summary>
     public static class GameSetup
     {
@@ -23,7 +24,10 @@ namespace Yafes.GameData
         public enum InstallationStatus
         {
             NotStarted,
-            Preparing,
+            SearchingGameDrive,
+            SearchingGameSetups,
+            SearchingGameFolder,
+            FoundSetupExe,
             Installing,
             Completed,
             Failed,
@@ -31,292 +35,308 @@ namespace Yafes.GameData
         }
 
         /// <summary>
-        /// 🎯 MAIN METHOD: Card click'ten çağrılacak silent installation
+        /// 🎯 MAIN METHOD: Card click'ten çağrılacak - Silent installation with NSIS parameters
         /// </summary>
         /// <param name="gameData">Kurulacak oyun verisi</param>
         /// <param name="queueManager">Queue manager referansı</param>
         /// <returns>Installation başarılı mı</returns>
-        public static async Task<bool> StartSilentInstallation(GameData gameData, GameInstallationQueueManager queueManager = null)
+        public static async Task<bool> StartSilentInstallation(Yafes.Models.GameData gameData, GameInstallationQueueManager queueManager = null)
         {
             try
             {
                 if (gameData == null)
                 {
-                    LogMessage?.Invoke("❌ GameData null - installation cancelled");
+                    MessageBox.Show("GameData null!", "HATA", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
-                LogMessage?.Invoke($"🚀 Starting silent installation for: {gameData.Name}");
+                // 🎯 GERÇEK PATH GIRME EKRANI - DEFAULT DOĞRU PATH
+                string realSetupPath = Microsoft.VisualBasic.Interaction.InputBox(
+                    $"🎮 {gameData.Name}\n\n" +
+                    "Lütfen gerçek setup.exe path'ini girin:\n\n" +
+                    "Örnek: D:\\GameSetups\\[Game Folder]\\setup.exe",
+                    "Setup.exe Path",
+                    $@"D:\GameSetups\{gameData.Name}\setup.exe"
+                );
 
-                // 1. Installation hazırlığı
-                InstallationStatusChanged?.Invoke(gameData.Id, InstallationStatus.Preparing);
-                InstallationProgress?.Invoke(gameData.Id, 0);
-
-                // 2. Queue'ya ekle (eğer manager varsa)
-                if (queueManager != null)
+                if (string.IsNullOrEmpty(realSetupPath))
                 {
-                    await queueManager.AddGameToInstallationQueue(gameData);
-                    LogMessage?.Invoke($"✅ {gameData.Name} added to installation queue");
+                    MessageBox.Show("Path girilmedi, işlem iptal.", "Cancelled", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return false;
                 }
 
-                // 3. Setup dosyası kontrolü
-                var setupPath = await FindGameSetupFile(gameData);
-                if (string.IsNullOrEmpty(setupPath))
+                // 🔍 FILE EXISTENCE CHECK
+                if (!File.Exists(realSetupPath))
                 {
-                    LogMessage?.Invoke($"⚠️ Setup file not found for {gameData.Name}, using simulation");
-                    return await SimulateSilentInstallation(gameData);
+                    MessageBox.Show($"❌ Setup.exe bulunamadı!\n\n" +
+                                   $"Girilen path: {realSetupPath}\n\n" +
+                                   $"Lütfen doğru path'i kontrol edin.",
+                                   "File Not Found",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Error);
+                    return false;
                 }
 
-                // 4. Gerçek silent installation
-                return await PerformSilentInstallation(gameData, setupPath);
+                // 🔧 SILENT INSTALLATION PARAMETERS - C:\Game\ target directory
+                var silentParameters = new[]
+                {
+                    "/S /D=C:\\Game\\",               // Primary: NSIS with C:\Game\
+                    "/VERYSILENT /DIR=C:\\Game\\",    // Alternative: Inno Setup with C:\Game\
+                    "/S",                             // Only silent (no directory)
+                    "/VERYSILENT",                    // Only silent (Inno)
+                    "/quiet INSTALLDIR=\"C:\\Game\\\"", // MSI style with C:\Game\
+                    "/SILENT /INSTALLDIR=C:\\Game\\"  // InstallShield style with C:\Game\
+                };
+
+                // 📋 INSTALLATION INFO MESSAGE
+                var messageText = $"🎮 {gameData.Name}\n\n" +
+                                 $"✅ Setup.exe bulundu!\n" +
+                                 $"📁 Konum: {realSetupPath}\n\n" +
+                                 $"⚙️ Silent Parameters ({silentParameters.Length} adet):\n";
+
+                for (int i = 0; i < silentParameters.Length; i++)
+                {
+                    messageText += $"   {i + 1}. {silentParameters[i]}\n";
+                }
+
+                messageText += $"\n📂 Hedef Konum: C:\\Game\\{gameData.Name}\n\n" +
+                              $"Silent kurulum başlatılsın mı?";
+
+                var result = MessageBox.Show(messageText, "Silent Installation Ready", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                // 🚀 USER ACCEPTS INSTALLATION
+                if (result == MessageBoxResult.Yes)
+                {
+                    MessageBox.Show($"🚀 Silent kurulum başlatılıyor...\n\n" +
+                                   $"Setup: {realSetupPath}\n" +
+                                   $"Parametreler: {silentParameters.Length} adet\n\n" +
+                                   $"Her parametre 30 saniye timeout ile denenecek.",
+                                   "Installation Starting",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Information);
+
+                    // 🎯 TRY INSTALLATION WITH ALL PARAMETERS
+                    bool installationSuccess = await TryInstallationWithAllParameters(realSetupPath, silentParameters, gameData.Name);
+
+                    if (installationSuccess)
+                    {
+                        MessageBox.Show($"✅ {gameData.Name} başarıyla kuruldu!\n\n" +
+                                       $"📁 Kurulum Konumu: C:\\Games\\{gameData.Name}\n\n" +
+                                       $"Oyun artık oynanabilir!",
+                                       "Installation Completed",
+                                       MessageBoxButton.OK,
+                                       MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show($"❌ {gameData.Name} kurulum başarısız!\n\n" +
+                                       $"Tüm {silentParameters.Length} silent parametre denendi.\n\n" +
+                                       $"Çözüm önerileri:\n" +
+                                       $"• Manuel kurulum deneyin\n" +
+                                       $"• Setup.exe'yi double-click ile çalıştırın\n" +
+                                       $"• Admin yetkisi gerekebilir",
+                                       "Installation Failed",
+                                       MessageBoxButton.OK,
+                                       MessageBoxImage.Error);
+                    }
+
+                    return installationSuccess;
+                }
+                else
+                {
+                    MessageBox.Show("Kurulum iptal edildi.", "Cancelled", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return false;
+                }
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ StartSilentInstallation error: {ex.Message}");
-                InstallationStatusChanged?.Invoke(gameData?.Id ?? "unknown", InstallationStatus.Failed);
+                MessageBox.Show($"GameSetup Hata: {ex.Message}", "HATA", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
         }
 
         /// <summary>
-        /// 🔍 Oyun setup dosyasını bulur
+        /// 🎭 Installation process with all parameters - tüm parametreleri sırayla dener
         /// </summary>
-        private static async Task<string> FindGameSetupFile(GameData gameData)
+        private static async Task<bool> TryInstallationWithAllParameters(string setupPath, string[] parameters, string gameName)
         {
             try
             {
-                // Setup dosyası yolları (priority sırasında)
-                var possiblePaths = new[]
+                // 📂 C:\Game\ directory check/create
+                string gamesDirectory = @"C:\Game\";
+                if (!Directory.Exists(gamesDirectory))
                 {
-                    gameData.SetupPath, // GameData'dan gelen path
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), gameData.Name, "setup.exe"),
-                    Path.Combine(@"C:\Games", gameData.Name, "setup.exe"),
-                    Path.Combine(@"D:\Games", gameData.Name, "setup.exe"),
-                    Path.Combine(@"E:\Games", gameData.Name, "setup.exe")
-                };
+                    MessageBox.Show($"📁 C:\\Game\\ klasörü bulunamadı.\n\n" +
+                                   "Klasör oluşturuluyor...",
+                                   "Directory Creation",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Information);
 
-                foreach (var path in possiblePaths)
-                {
-                    if (!string.IsNullOrEmpty(path) && File.Exists(path))
-                    {
-                        LogMessage?.Invoke($"📁 Setup file found: {path}");
-                        return path;
-                    }
-                }
-
-                // ISO/mounted image kontrol
-                var isoPath = await FindIsoOrMountedImage(gameData.Name);
-                if (!string.IsNullOrEmpty(isoPath))
-                {
-                    return isoPath;
-                }
-
-                LogMessage?.Invoke($"❌ Setup file not found for: {gameData.Name}");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                LogMessage?.Invoke($"❌ FindGameSetupFile error: {ex.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// 💿 ISO veya mount edilmiş image'da setup.exe arar
-        /// </summary>
-        private static async Task<string> FindIsoOrMountedImage(string gameName)
-        {
-            try
-            {
-                // DVD/CD drive'ları kontrol et
-                var drives = DriveInfo.GetDrives();
-                foreach (var drive in drives)
-                {
-                    if (drive.DriveType == DriveType.CDRom && drive.IsReady)
-                    {
-                        var setupPath = Path.Combine(drive.RootDirectory.FullName, "setup.exe");
-                        if (File.Exists(setupPath))
-                        {
-                            LogMessage?.Invoke($"💿 Setup found in CD/DVD: {setupPath}");
-                            return setupPath;
-                        }
-                    }
-                }
-
-                return null;
-            }
-            catch (Exception ex)
-            {
-                LogMessage?.Invoke($"❌ FindIsoOrMountedImage error: {ex.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// 🎮 Gerçek silent installation işlemi
-        /// </summary>
-        private static async Task<bool> PerformSilentInstallation(GameData gameData, string setupPath)
-        {
-            try
-            {
-                InstallationStatusChanged?.Invoke(gameData.Id, InstallationStatus.Installing);
-                LogMessage?.Invoke($"⚙️ Starting silent installation: {setupPath}");
-
-                // Silent installation parametreleri (çoğu setup programı için)
-                var silentArgs = new[]
-                {
-                    "/S",           // NSIS installers
-                    "/SILENT",      // InstallShield
-                    "/VERYSILENT",  // Inno Setup
-                    "/quiet",       // MSI packages
-                    "/Q",           // Some installers
-                    "/s"            // Lowercase variant
-                };
-
-                foreach (var arg in silentArgs)
-                {
                     try
                     {
-                        var processInfo = new ProcessStartInfo
-                        {
-                            FileName = setupPath,
-                            Arguments = arg,
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            Verb = "runas" // Admin olarak çalıştır
-                        };
-
-                        LogMessage?.Invoke($"🔧 Trying silent parameter: {arg}");
-
-                        using var process = Process.Start(processInfo);
-                        if (process != null)
-                        {
-                            // Progress tracking (simulated)
-                            var progressTask = TrackInstallationProgress(gameData.Id);
-
-                            // Installation bitmesini bekle
-                            await process.WaitForExitAsync();
-
-                            if (process.ExitCode == 0)
-                            {
-                                InstallationStatusChanged?.Invoke(gameData.Id, InstallationStatus.Completed);
-                                InstallationProgress?.Invoke(gameData.Id, 100);
-                                LogMessage?.Invoke($"✅ Silent installation completed: {gameData.Name}");
-
-                                // Post-installation tasks
-                                await PostInstallationTasks(gameData);
-                                return true;
-                            }
-                            else
-                            {
-                                LogMessage?.Invoke($"⚠️ Installation failed with exit code: {process.ExitCode}");
-                            }
-                        }
+                        Directory.CreateDirectory(gamesDirectory);
+                        MessageBox.Show("✅ C:\\Game\\ klasörü oluşturuldu!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     catch (Exception ex)
                     {
-                        LogMessage?.Invoke($"❌ Silent installation attempt failed: {ex.Message}");
-                        continue; // Try next parameter
+                        MessageBox.Show($"❌ C:\\Game\\ klasörü oluşturulamadı!\n\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return false;
                     }
                 }
 
-                // Eğer hiçbir silent parameter çalışmazsa
-                LogMessage?.Invoke($"❌ All silent installation attempts failed for: {gameData.Name}");
-                InstallationStatusChanged?.Invoke(gameData.Id, InstallationStatus.Failed);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                LogMessage?.Invoke($"❌ PerformSilentInstallation error: {ex.Message}");
-                InstallationStatusChanged?.Invoke(gameData.Id, InstallationStatus.Failed);
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// 🎭 Installation simülasyonu (setup dosyası yoksa)
-        /// </summary>
-        private static async Task<bool> SimulateSilentInstallation(GameData gameData)
-        {
-            try
-            {
-                InstallationStatusChanged?.Invoke(gameData.Id, InstallationStatus.Installing);
-                LogMessage?.Invoke($"🎭 Simulating installation for: {gameData.Name}");
-
-                // 10 saniyede simülasyon
-                for (int progress = 0; progress <= 100; progress += 10)
+                // 🔧 TRY EACH PARAMETER
+                for (int i = 0; i < parameters.Length; i++)
                 {
-                    InstallationProgress?.Invoke(gameData.Id, progress);
-                    await Task.Delay(1000); // 1 saniye bekle
+                    string currentParam = parameters[i];
 
-                    if (progress == 50)
+                    MessageBox.Show($"🔧 Parameter {i + 1}/{parameters.Length} deneniyor:\n\n" +
+                                   $"Command: setup.exe {currentParam}\n\n" +
+                                   $"30 saniye timeout ile test edilecek...",
+                                   $"Trying Parameter {i + 1}",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Information);
+
+                    // 🎯 GERÇEK PARAMETER TEST
+                    bool parameterSuccess = await TestSingleParameter(setupPath, currentParam, gameName);
+
+                    if (parameterSuccess)
                     {
-                        LogMessage?.Invoke($"📊 Installation 50% complete: {gameData.Name}");
+                        MessageBox.Show($"✅ Parameter başarılı!\n\n" +
+                                       $"Kullanılan: {currentParam}\n\n" +
+                                       $"Kurulum tamamlandı!",
+                                       "Parameter Success",
+                                       MessageBoxButton.OK,
+                                       MessageBoxImage.Information);
+                        return true;
+                    }
+                    else
+                    {
+                        MessageBox.Show($"❌ Parameter başarısız: {currentParam}\n\n" +
+                                       $"Sonraki parameter deneniyor...",
+                                       "Parameter Failed",
+                                       MessageBoxButton.OK,
+                                       MessageBoxImage.Warning);
                     }
                 }
 
-                InstallationStatusChanged?.Invoke(gameData.Id, InstallationStatus.Completed);
-                LogMessage?.Invoke($"✅ Simulated installation completed: {gameData.Name}");
-
-                // GameData'yı kurulu olarak işaretle
-                await GameDataManager.UpdateGameInstallStatusAsync(gameData.Id, true);
-
-                return true;
+                // All parameters failed
+                return false;
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ SimulateSilentInstallation error: {ex.Message}");
-                InstallationStatusChanged?.Invoke(gameData.Id, InstallationStatus.Failed);
+                MessageBox.Show($"TryInstallationWithAllParameters Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
         }
 
         /// <summary>
-        /// 📊 Installation progress tracking
+        /// 🎲 Single parameter test - GERÇEK PROCESS EXECUTION
         /// </summary>
-        private static async Task TrackInstallationProgress(string gameId)
+        private static async Task<bool> TestSingleParameter(string setupPath, string parameter, string gameName)
         {
             try
             {
-                // Simulated progress tracking
-                for (int i = 10; i <= 90; i += 10)
+                // 🚀 GERÇEK PROCESS EXECUTION
+                MessageBox.Show($"🚀 Gerçek kurulum başlatılıyor!\n\n" +
+                               $"Command: {setupPath} {parameter}\n\n" +
+                               $"Process başlatılıyor...",
+                               "Real Installation",
+                               MessageBoxButton.OK,
+                               MessageBoxImage.Information);
+
+                var processInfo = new ProcessStartInfo
                 {
-                    InstallationProgress?.Invoke(gameId, i);
-                    await Task.Delay(2000); // 2 saniye intervals
+                    FileName = setupPath,
+                    Arguments = parameter,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    Verb = "runas" // Admin olarak çalıştır
+                };
+
+                using var process = Process.Start(processInfo);
+                if (process == null)
+                {
+                    MessageBox.Show("❌ Process başlatılamadı!", "Process Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+
+                MessageBox.Show($"✅ Process başlatıldı!\n\n" +
+                               $"Process ID: {process.Id}\n\n" +
+                               $"Kurulum devam ediyor...\n" +
+                               $"Max 30 saniye beklenecek.",
+                               "Process Started",
+                               MessageBoxButton.OK,
+                               MessageBoxImage.Information);
+
+                // 🕐 PROCESS BITMESINI BEKLE (MAX 30 SANIYE)
+                var cancellationToken = new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;
+
+                try
+                {
+                    await process.WaitForExitAsync(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    MessageBox.Show("⏰ Kurulum zaman aşımına uğradı! (30 saniye)\n\n" +
+                                   "Process sonlandırılıyor...",
+                                   "Timeout",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Warning);
+
+                    process.Kill();
+                    return false;
+                }
+
+                // 📊 EXIT CODE KONTROLÜ
+                int exitCode = process.ExitCode;
+
+                MessageBox.Show($"🏁 Process tamamlandı!\n\n" +
+                               $"Exit Code: {exitCode}\n\n" +
+                               $"Exit Code 0 = Başarılı\n" +
+                               $"Exit Code ≠ 0 = Hata",
+                               "Process Completed",
+                               MessageBoxButton.OK,
+                               MessageBoxImage.Information);
+
+                if (exitCode == 0)
+                {
+                    // 📂 KURULUM DOĞRULAMA
+                    string gameInstallPath = $@"C:\Game\{gameName}";
+                    bool installationVerified = Directory.Exists(gameInstallPath);
+
+                    MessageBox.Show($"📂 Kurulum doğrulaması:\n\n" +
+                                   $"Kontrol edilen klasör: {gameInstallPath}\n" +
+                                   $"Klasör var mı: {(installationVerified ? "✅ EVET" : "❌ HAYIR")}\n\n" +
+                                   $"{(installationVerified ? "Kurulum başarılı!" : "Kurulum klasörü bulunamadı!")}",
+                                   "Installation Verification",
+                                   MessageBoxButton.OK,
+                                   installationVerified ? MessageBoxImage.Information : MessageBoxImage.Warning);
+
+                    return installationVerified;
+                }
+                else
+                {
+                    MessageBox.Show($"❌ Kurulum başarısız!\n\n" +
+                                   $"Exit Code: {exitCode}\n" +
+                                   $"Parameter: {parameter}\n\n" +
+                                   $"Sonraki parameter deneniyor...",
+                                   "Installation Failed",
+                                   MessageBoxButton.OK,
+                                   MessageBoxImage.Error);
+                    return false;
                 }
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke($"❌ TrackInstallationProgress error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 🔧 Post-installation tasks
-        /// </summary>
-        private static async Task PostInstallationTasks(GameData gameData)
-        {
-            try
-            {
-                LogMessage?.Invoke($"🔧 Running post-installation tasks for: {gameData.Name}");
-
-                // 1. Registry kontrolleri
-                // 2. Shortcut oluşturma
-                // 3. Game executable bulma
-                // 4. Database update
-
-                await Task.Delay(1000); // Post-install delay
-
-                // GameData'yı kurulu olarak işaretle
-                await GameDataManager.UpdateGameInstallStatusAsync(gameData.Id, true);
-
-                LogMessage?.Invoke($"✅ Post-installation tasks completed: {gameData.Name}");
-            }
-            catch (Exception ex)
-            {
-                LogMessage?.Invoke($"❌ PostInstallationTasks error: {ex.Message}");
+                MessageBox.Show($"❌ Process Execution Error:\n\n" +
+                               $"{ex.Message}\n\n" +
+                               $"Parameter: {parameter}",
+                               "Execution Error",
+                               MessageBoxButton.OK,
+                               MessageBoxImage.Error);
+                return false;
             }
         }
 
@@ -333,45 +353,6 @@ namespace Yafes.GameData
             catch (Exception ex)
             {
                 LogMessage?.Invoke($"❌ CancelInstallation error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 🎯 Kurulum durumu kontrol
-        /// </summary>
-        public static bool IsGameInstalled(GameData gameData)
-        {
-            try
-            {
-                if (gameData == null) return false;
-
-                // 1. GameData'dan kontrol
-                if (gameData.IsInstalled) return true;
-
-                // 2. Registry kontrol (örnek path'ler)
-                var possiblePaths = new[]
-                {
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), gameData.Name),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), gameData.Name),
-                    Path.Combine(@"C:\Games", gameData.Name),
-                    Path.Combine(@"D:\Games", gameData.Name)
-                };
-
-                foreach (var path in possiblePaths)
-                {
-                    if (Directory.Exists(path))
-                    {
-                        LogMessage?.Invoke($"📁 Game installation found: {path}");
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            catch (Exception ex)
-            {
-                LogMessage?.Invoke($"❌ IsGameInstalled error: {ex.Message}");
-                return false;
             }
         }
     }
