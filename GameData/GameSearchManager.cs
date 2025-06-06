@@ -54,7 +54,7 @@ namespace Yafes.Managers
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"GameCard creation error: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Game creation error: {ex.Message}");
                     }
                 }
 

@@ -279,6 +279,8 @@ namespace Yafes
                 {
                     if (gamesPanelManager != null)
                     {
+                        var gameCardManager = new GameCardManager();
+                        gameCardManager.HideMainBackgroundLogo(this);
                         bool success = await gamesPanelManager.ToggleGamesPanel();
 
                         if (success)
@@ -286,6 +288,7 @@ namespace Yafes
                             // Panel durumuna göre kategori ayarla
                             if (gamesPanelManager.IsGamesVisible)
                             {
+
                                 isGamesVisible = true;
                                 SetSelectedCategory("Games");
                                 txtLog.AppendText("🎮 Games modu aktif - Sol sidebar gizlendi, Games panel genişletildi\n");
@@ -293,6 +296,7 @@ namespace Yafes
                             }
                             else
                             {
+                                gameCardManager.ShowMainBackgroundLogo(this);
                                 isGamesVisible = false;
                                 SetSelectedCategory("Programlar");
                                 txtLog.AppendText("🔄 Normal mod - Sol sidebar gösterildi, Terminal restore edildi\n");

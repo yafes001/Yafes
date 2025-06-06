@@ -22,7 +22,8 @@ namespace Yafes.Managers
                     BorderBrush = new SolidColorBrush(Color.FromRgb(255, 165, 0)),
                     BorderThickness = new Thickness(1),
                     Margin = new Thickness(5),
-                    Height = 140,
+                    Height = 160, // ✅ Biraz daha yüksek - daha iyi oran
+                    Width = 120,  // ✅ Sabit genişlik - 3:4 ratio (4:5 benzeri)
                     Cursor = Cursors.Hand,
                     Tag = game,
                     CornerRadius = new CornerRadius(8),
@@ -46,29 +47,32 @@ namespace Yafes.Managers
 
                         if (bitmapImage != null && bitmapImage != ImageManager.GetDefaultImage())
                         {
-                            var backgroundImage = new Image
-                            {
-                                Source = bitmapImage,
-                                Stretch = Stretch.UniformToFill,
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                VerticalAlignment = VerticalAlignment.Center,
-                                Opacity = 0.4,
-                                Effect = new System.Windows.Media.Effects.BlurEffect
-                                {
-                                    Radius = 12
-                                }
-                            };
-                            mainGrid.Children.Add(backgroundImage);
+                            // ❌ BLUR KALDIRILDI - Background image artık blur olmayacak
+                            // var backgroundImage = new Image
+                            // {
+                            //     Source = bitmapImage,
+                            //     Stretch = Stretch.UniformToFill,
+                            //     HorizontalAlignment = HorizontalAlignment.Center,
+                            //     VerticalAlignment = VerticalAlignment.Center,
+                            //     Opacity = 0.4,
+                            //     Effect = new System.Windows.Media.Effects.BlurEffect
+                            //     {
+                            //         Radius = 12
+                            //     }
+                            // };
+                            // mainGrid.Children.Add(backgroundImage);
 
+                            // ✅ TEK IMAGE - Çerçeveye TAM OTURAN görüntü
                             var foregroundImage = new Image
                             {
                                 Source = bitmapImage,
-                                Stretch = Stretch.Uniform,
+                                Stretch = Stretch.UniformToFill, // ✅ UniformToFill - Çerçeveyi tamamen doldurur
                                 HorizontalAlignment = HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center,
                                 Width = Double.NaN,
                                 Height = Double.NaN,
-                                Opacity = 0.95
+                                Opacity = 1.0 // Tam opak
+                                // ❌ Margin kaldırıldı - Tam oturacak
                             };
 
                             RenderOptions.SetBitmapScalingMode(foregroundImage, BitmapScalingMode.HighQuality);
@@ -480,7 +484,70 @@ namespace Yafes.Managers
             {
             }
         }
+        // XAML'daki spesifik logo için metotlar - Main.xaml analizi
+        public void HideMainBackgroundLogo(Window mainWindow)
+        {
+            try
+            {
+                // Main.xaml'daki Canvas.Left="392" Canvas.Top="230" konumundaki logo
+                var mainCanvas = mainWindow.FindName("MainCanvas") as Canvas;
+                if (mainCanvas != null)
+                {
+                    foreach (var child in mainCanvas.Children)
+                    {
+                        if (child is Image logoImage &&
+                            logoImage.Source?.ToString().Contains("logo.png") == true)
+                        {
+                            // Canvas pozisyonunu kontrol et
+                            double left = Canvas.GetLeft(logoImage);
+                            double top = Canvas.GetTop(logoImage);
 
+                            // Spesifik logo pozisyonu: Canvas.Left="392" Canvas.Top="230"
+                            if (Math.Abs(left - 392) < 5 && Math.Abs(top - 230) < 5)
+                            {
+                                logoImage.Visibility = Visibility.Collapsed;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
+        public void ShowMainBackgroundLogo(Window mainWindow)
+        {
+            try
+            {
+                // Main.xaml'daki Canvas.Left="392" Canvas.Top="230" konumundaki logo
+                var mainCanvas = mainWindow.FindName("MainCanvas") as Canvas;
+                if (mainCanvas != null)
+                {
+                    foreach (var child in mainCanvas.Children)
+                    {
+                        if (child is Image logoImage &&
+                            logoImage.Source?.ToString().Contains("logo.png") == true)
+                        {
+                            // Canvas pozisyonunu kontrol et
+                            double left = Canvas.GetLeft(logoImage);
+                            double top = Canvas.GetTop(logoImage);
+
+                            // Spesifik logo pozisyonu: Canvas.Left="392" Canvas.Top="230"
+                            if (Math.Abs(left - 392) < 5 && Math.Abs(top - 230) < 5)
+                            {
+                                logoImage.Visibility = Visibility.Visible;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+        }
         private void CreateShakeEffect(Border card)
         {
             try

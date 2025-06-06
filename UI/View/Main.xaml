@@ -510,6 +510,144 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- 🎮 LAMBDA SCROLLBAR STYLE - GAMES PANEL İÇİN -->
+        <Style x:Key="LambdaScrollBarStyle" TargetType="ScrollBar">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#40FFA500" Offset="0"/>
+                        <GradientStop Color="#80000000" Offset="0.5"/>
+                        <GradientStop Color="#40FFA500" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#99FFA500"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#FFA500" BlurRadius="6" ShadowDepth="0" Opacity="0.3"/>
+                            </Border.Effect>
+
+                            <Track x:Name="PART_Track" 
+                                   Orientation="Vertical"
+                                   IsDirectionReversed="True"
+                                   Margin="2">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="ThumbBorder"
+                                                        Background="#FFA500"
+                                                        BorderBrush="#FFD700"
+                                                        BorderThickness="1"
+                                                        CornerRadius="5"
+                                                        Margin="1">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect Color="#FFA500" BlurRadius="8" ShadowDepth="0" Opacity="0.6"/>
+                                                    </Border.Effect>
+
+                                                    <!-- Lambda Symbol on Thumb -->
+                                                    <TextBlock Text="λ" 
+                                                              Foreground="Black"
+                                                              FontWeight="Bold"
+                                                              FontSize="10"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"
+                                                              Opacity="0.7"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbBorder" Property="Background">
+                                                            <Setter.Value>
+                                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                                    <GradientStop Color="#FFD700" Offset="0"/>
+                                                                    <GradientStop Color="#FFA500" Offset="1"/>
+                                                                </LinearGradientBrush>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                        <Setter TargetName="ThumbBorder" Property="BorderBrush" Value="#FFFF00"/>
+                                                        <Setter TargetName="ThumbBorder" Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#FFD700" BlurRadius="12" ShadowDepth="0" Opacity="0.8"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbBorder" Property="Background" Value="#FF8C00"/>
+                                                        <Setter TargetName="ThumbBorder" Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect Color="#FF8C00" BlurRadius="15" ShadowDepth="0" Opacity="1.0"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 📋 LAMBDA SCROLLVIEWER STYLE - GAMES PANEL İÇİN -->
+        <Style x:Key="LambdaScrollViewerStyle" TargetType="ScrollViewer">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Content Area -->
+                            <ScrollContentPresenter Grid.Column="0" Grid.Row="0" 
+                                                   x:Name="PART_ScrollContentPresenter"
+                                                   Content="{TemplateBinding Content}"
+                                                   ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                   CanContentScroll="{TemplateBinding CanContentScroll}"
+                                                   CanHorizontallyScroll="False"
+                                                   CanVerticallyScroll="False"/>
+
+                            <!-- Vertical ScrollBar -->
+                            <ScrollBar Grid.Column="1" Grid.Row="0"
+                                      x:Name="PART_VerticalScrollBar"
+                                      Style="{StaticResource LambdaScrollBarStyle}"
+                                      Orientation="Vertical"
+                                      Value="{TemplateBinding VerticalOffset}"
+                                      Maximum="{TemplateBinding ScrollableHeight}"
+                                      ViewportSize="{TemplateBinding ViewportHeight}"
+                                      Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+
+                            <!-- Horizontal ScrollBar (Hidden) -->
+                            <ScrollBar Grid.Column="0" Grid.Row="1"
+                                      x:Name="PART_HorizontalScrollBar"
+                                      Orientation="Horizontal"
+                                      Value="{TemplateBinding HorizontalOffset}"
+                                      Maximum="{TemplateBinding ScrollableWidth}"
+                                      ViewportSize="{TemplateBinding ViewportWidth}"
+                                      Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
+                                      Opacity="0"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <!-- Main Canvas Container -->
@@ -817,7 +955,7 @@
                                     <Grid Grid.Column="1">
                                         <!-- Placeholder -->
                                         <TextBlock x:Name="SearchPlaceholder" 
-                                                  Text="Search games..." 
+                                                  Text="Oyun ara..." 
                                                   FontSize="9" 
                                                   FontFamily="Trebuchet MS"
                                                   FontStyle="Italic"
@@ -868,9 +1006,11 @@
                     </Grid>
                 </Border>
 
-                <!-- Games Content Grid -->
+                <!-- Games Content Grid WITH LAMBDA SCROLLBAR -->
                 <ScrollViewer x:Name="gamesScrollViewer" Canvas.Left="15" Canvas.Top="43" Width="844" Height="533" 
-                             VerticalScrollBarVisibility="Auto">
+                             Style="{StaticResource LambdaScrollViewerStyle}"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Disabled">
                     <UniformGrid x:Name="gamesGrid" Columns="8" Margin="10">
                         <!-- Kartlar GamesPanelManager tarafından programatik olarak eklenecek -->
                     </UniformGrid>

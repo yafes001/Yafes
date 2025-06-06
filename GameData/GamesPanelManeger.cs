@@ -25,6 +25,14 @@ namespace Yafes.Managers
         private Border _progressBarContainer;
         private TranslateTransform _progressBarTransform;
 
+        // Kurulum kuyruğu
+        private Border _installationQueue;
+        private TranslateTransform _installationQueueTransform;
+
+        // YENİ: Oyun yükleme kuyruğu
+        private Border _gameInstallationQueue;
+        private TranslateTransform _gameInstallationQueueTransform;
+
         private double _originalWindowHeight;
         private double _progressBarHeight = 0;
         private Canvas _mainCanvas;
@@ -44,6 +52,7 @@ namespace Yafes.Managers
         private AnimationManager _animationManager;
         private GameSearchManager _gameSearchManager;
         private GameCardManager _gameCardManager;
+        private GameInstallationQueueManager _gameInstallationQueueManager;
 
         public event Action<string> LogMessage;
 
@@ -53,25 +62,78 @@ namespace Yafes.Managers
             _logTextBox = logTextBox ?? throw new ArgumentNullException(nameof(logTextBox));
 
             LogMessage += (message) => {
-                _logTextBox.Dispatcher.Invoke(() => {
-                    _logTextBox.AppendText(message + "\n");
-                    _logTextBox.ScrollToEnd();
-                });
+                try
+                {
+                    if (_logTextBox?.Dispatcher?.CheckAccess() == true)
+                    {
+                        _logTextBox.AppendText(message + "\n");
+                        _logTextBox.ScrollToEnd();
+                    }
+                    else
+                    {
+                        _logTextBox?.Dispatcher?.Invoke(() => {
+                            _logTextBox.AppendText(message + "\n");
+                            _logTextBox.ScrollToEnd();
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"LogMessage error: {ex.Message}");
+                }
             };
 
             InitializeSidebarElements();
             InitializeProgressBarElements();
+            InitializeInstallationQueueElements();
+            InitializeGameInstallationQueueElements();
             InitializeWindowHeightAnimation();
             InitializeStoryboards();
             InitializeManagers();
 
             if (!_diskStatusChecked)
             {
+                TestGameInstallationQueue();
                 _diskStatusChecked = true;
             }
         }
 
         public bool IsGamesVisible => _isGamesVisible;
+
+        // YENİ DEBUG METOD - DÜZELTİLDİ: Test metodunu kaldır
+        private async void TestGameInstallationQueue()
+        {
+            try
+            {
+                await Task.Delay(2000);
+
+                if (_gameInstallationQueue != null)
+                {
+                    if (_gameInstallationQueueTransform != null)
+                    {
+                        // Silent test - no logs
+                    }
+                }
+
+                var mainCanvas = UIHelperManager.FindElementByName<Canvas>(_parentWindow, "MainCanvas");
+                if (mainCanvas != null)
+                {
+                    foreach (var child in mainCanvas.Children)
+                    {
+                        if (child is Border border && border == _gameInstallationQueue)
+                        {
+                            double left = Canvas.GetLeft(border);
+                            double top = Canvas.GetTop(border);
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Silent fail
+            }
+        }
 
         public async Task RefreshDiskPaths()
         {
@@ -94,19 +156,130 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
+                // Silent fail
             }
         }
 
+        // MEVCUT: Kurulum kuyruğu elementlerini initialize eder
+        private void InitializeInstallationQueueElements()
+        {
+            try
+            {
+                _installationQueue = FindInstallationQueueBorder();
+
+                if (_installationQueue != null)
+                {
+                    _installationQueueTransform = _installationQueue.RenderTransform as TranslateTransform;
+                    if (_installationQueueTransform == null)
+                    {
+                        _installationQueueTransform = new TranslateTransform();
+                        _installationQueue.RenderTransform = _installationQueueTransform;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Silent fail
+            }
+        }
+
+        // YENİ METOD: Oyun yükleme kuyruğu elementlerini initialize eder - DÜZELTİLDİ
+        private void InitializeGameInstallationQueueElements()
+        {
+            try
+            {
+                // GameInstallationQueueManager'ı oluştur
+                var dummyStackPanel = new StackPanel();
+                var dummyTextBlock = new TextBlock();
+                _gameInstallationQueueManager = new GameInstallationQueueManager(dummyStackPanel, dummyTextBlock, _logTextBox, _parentWindow);
+
+                // Panel oluştur
+                _gameInstallationQueue = _gameInstallationQueueManager.CreateGameInstallationQueuePanel();
+
+                if (_gameInstallationQueue != null)
+                {
+                    _gameInstallationQueueTransform = _gameInstallationQueue.RenderTransform as TranslateTransform;
+
+                    if (_gameInstallationQueueTransform == null)
+                    {
+                        _gameInstallationQueueTransform = new TranslateTransform();
+                        _gameInstallationQueueTransform.X = 220;
+                        _gameInstallationQueue.RenderTransform = _gameInstallationQueueTransform;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Silent fail
+            }
+        }
+
+        // MEVCUT: Kurulum kuyruğu bulma metodları
+        private Border FindInstallationQueueBorder()
+        {
+            try
+            {
+                var mainCanvas = UIHelperManager.FindElementByName<Canvas>(_parentWindow, "MainCanvas");
+                if (mainCanvas == null) return null;
+
+                foreach (var child in mainCanvas.Children)
+                {
+                    if (child is Border border)
+                    {
+                        double leftValue = Canvas.GetLeft(border);
+                        if (Math.Abs(leftValue - 890) < 1)
+                        {
+                            return FindInstallationQueueInSidebar(border);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Silent fail
+            }
+
+            return null;
+        }
+
+        private Border FindInstallationQueueInSidebar(Border rightSidebar)
+        {
+            try
+            {
+                if (rightSidebar.Child is Canvas sidebarCanvas)
+                {
+                    foreach (var child in sidebarCanvas.Children)
+                    {
+                        if (child is Border border)
+                        {
+                            double topValue = Canvas.GetTop(border);
+                            if (Math.Abs(topValue - 168) < 1)
+                            {
+                                return border;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Silent fail
+            }
+
+            return null;
+        }
+
+        // GÜNCELLENMİŞ: InitializeManagers - Oyun kuyruğu parametresi eklendi
         private void InitializeManagers()
         {
             try
             {
-                // GameCardManager'ı initialize et
                 _gameCardManager = new GameCardManager();
 
-                // AnimationManager'ı initialize et
                 if (_leftSidebar != null && _leftSidebarTransform != null &&
-                    _progressBarContainer != null && _progressBarTransform != null)
+                    _progressBarContainer != null && _progressBarTransform != null &&
+                    _installationQueue != null && _installationQueueTransform != null &&
+                    _gameInstallationQueue != null && _gameInstallationQueueTransform != null)
                 {
                     _animationManager = new AnimationManager(
                         _parentWindow,
@@ -114,16 +287,20 @@ namespace Yafes.Managers
                         _leftSidebarTransform,
                         _progressBarContainer,
                         _progressBarTransform,
+                        _installationQueue,
+                        _installationQueueTransform,
+                        _gameInstallationQueue,
+                        _gameInstallationQueueTransform,
                         _originalWindowHeight,
                         _progressBarHeight
                     );
                 }
 
-                // GameSearchManager'ı initialize et
                 _gameSearchManager = new GameSearchManager(_allGames, CreateGameCardWrapper);
             }
             catch (Exception ex)
             {
+                // Silent fail
             }
         }
 
@@ -142,6 +319,7 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
+                // Silent fail
             }
         }
 
@@ -171,7 +349,7 @@ namespace Yafes.Managers
                     _progressBarHeight = 64;
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 _progressBarHeight = 64;
             }
@@ -188,6 +366,7 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
+                // Silent fail
             }
         }
 
@@ -209,6 +388,7 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
+                // Silent fail
             }
         }
 
@@ -230,6 +410,7 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
+                // Silent fail
             }
         }
 
@@ -241,7 +422,7 @@ namespace Yafes.Managers
                 return _progressBarContainer.Visibility == Visibility.Collapsed ||
                        (_progressBarTransform != null && _progressBarTransform.X > 600);
             }
-            catch
+            catch (Exception ex)
             {
                 return false;
             }
@@ -256,7 +437,10 @@ namespace Yafes.Managers
         {
             try
             {
-                if (_animationManager == null) return false;
+                if (_animationManager == null)
+                {
+                    return false;
+                }
 
                 if (!IsProgressBarHidden())
                 {
@@ -275,15 +459,22 @@ namespace Yafes.Managers
             }
         }
 
+        // GÜNCELLENMİŞ: ToggleGamesPanel - Oyun kuyruğu animasyonu eklendi
         public async Task<bool> ToggleGamesPanel()
         {
             try
             {
-                if (_animationManager == null) return false;
+                if (_animationManager == null)
+                {
+                    return false;
+                }
 
                 if (!_isGamesVisible)
                 {
                     await _animationManager.SlideSidebarOut();
+                    await _animationManager.SlideInstallationQueueDown();
+                    await _animationManager.SlideGameInstallationQueueIn();
+
                     bool success = await ShowGamesPanel();
                     if (success)
                     {
@@ -295,12 +486,15 @@ namespace Yafes.Managers
                 else
                 {
                     await _animationManager.SlideProgressBarIn();
+
                     bool success = await HideGamesPanel();
                     if (success)
                     {
                         _isGamesVisible = false;
+                        await _animationManager.SlideGameInstallationQueueOut();
+                        await _animationManager.SlideInstallationQueueUp();
+                        await _animationManager.SlideSidebarIn();
                     }
-                    await _animationManager.SlideSidebarIn();
                     return success;
                 }
             }
@@ -310,6 +504,7 @@ namespace Yafes.Managers
             }
         }
 
+        // MEVCUT METODLAR (değişmez)
         private async Task<bool> ShowGamesPanel()
         {
             try
@@ -346,7 +541,10 @@ namespace Yafes.Managers
                     var progressContainer = UIHelperManager.FindElementByName<Border>(_parentWindow, "ProgressBarContainer");
                     var tcs2 = new TaskCompletionSource<bool>();
                     _progressBarSlideOut.Completed += (s, e) => {
-                        if (progressContainer != null) progressContainer.Visibility = Visibility.Collapsed;
+                        if (progressContainer != null)
+                        {
+                            progressContainer.Visibility = Visibility.Collapsed;
+                        }
                         tcs2.SetResult(true);
                     };
 
@@ -448,7 +646,10 @@ namespace Yafes.Managers
             try
             {
                 var gamesGrid = UIHelperManager.FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
-                if (gamesGrid == null) return;
+                if (gamesGrid == null)
+                {
+                    return;
+                }
 
                 gamesGrid.Children.Clear();
                 await Task.Delay(50);
@@ -483,6 +684,7 @@ namespace Yafes.Managers
                     displayGames = _gameSearchManager?.FilterGames(_currentSearchText) ?? games;
                 }
 
+                int cardCount = 0;
                 foreach (var game in displayGames)
                 {
                     try
@@ -491,10 +693,12 @@ namespace Yafes.Managers
                         if (gameCard != null)
                         {
                             gamesGrid.Children.Add(gameCard);
+                            cardCount++;
                         }
                     }
                     catch (Exception ex)
                     {
+                        // Silent fail for individual cards
                     }
                 }
 
@@ -502,10 +706,17 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
-                var gamesGrid = UIHelperManager.FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
-                if (gamesGrid != null)
+                try
                 {
-                    _gameCardManager?.CreateDefaultGameCards(gamesGrid);
+                    var gamesGrid = UIHelperManager.FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
+                    if (gamesGrid != null)
+                    {
+                        _gameCardManager?.CreateDefaultGameCards(gamesGrid);
+                    }
+                }
+                catch (Exception fallbackEx)
+                {
+                    // Silent fail
                 }
             }
         }
@@ -517,10 +728,16 @@ namespace Yafes.Managers
                 _currentSearchText = searchText;
 
                 var gamesPanel = UIHelperManager.FindElementByTag<Border>(_parentWindow, "GamesPanel");
-                if (gamesPanel == null) return;
+                if (gamesPanel == null)
+                {
+                    return;
+                }
 
                 var gamesGrid = UIHelperManager.FindElementByName<UniformGrid>(gamesPanel, "gamesGrid");
-                if (gamesGrid == null) return;
+                if (gamesGrid == null)
+                {
+                    return;
+                }
 
                 if (_gameSearchManager != null)
                 {
@@ -529,9 +746,11 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
+                // Silent fail
             }
         }
 
+        // GÜNCELLENMİŞ: ForceReset - Oyun kuyruğu reset'i eklendi
         public void ForceReset()
         {
             try
@@ -544,6 +763,24 @@ namespace Yafes.Managers
                 if (_progressBarTransform != null)
                 {
                     _progressBarTransform.X = 0;
+                }
+
+                if (_installationQueueTransform != null)
+                {
+                    _installationQueueTransform.Y = 0;
+                }
+                if (_installationQueue != null)
+                {
+                    _installationQueue.Visibility = Visibility.Visible;
+                }
+
+                if (_gameInstallationQueueTransform != null)
+                {
+                    _gameInstallationQueueTransform.X = 220;
+                }
+                if (_gameInstallationQueue != null)
+                {
+                    _gameInstallationQueue.Visibility = Visibility.Collapsed;
                 }
 
                 _parentWindow.Height = _originalWindowHeight;
@@ -585,7 +822,16 @@ namespace Yafes.Managers
             }
             catch (Exception ex)
             {
+                // Silent fail
             }
+        }
+
+        /// <summary>
+        /// GameInstallationQueueManager referansını döndürür
+        /// </summary>
+        public GameInstallationQueueManager GetGameInstallationQueueManager()
+        {
+            return _gameInstallationQueueManager;
         }
     }
 }

@@ -23,6 +23,7 @@
     <Compile Include="GameData\GameCardManager.cs" />
     <Compile Include="GameData\GameData.cs" />
     <Compile Include="GameData\GameDataManager.cs" />
+    <Compile Include="GameData\GameInstallationQueueManager.cs" />
     <Compile Include="GameData\GameInstaller.cs" />
     <Compile Include="GameData\GamesDatabase.cs" />
     <Compile Include="GameData\GameSearchManager.cs" />
