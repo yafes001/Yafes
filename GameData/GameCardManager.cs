@@ -7,18 +7,14 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
-using Yafes.GameData; // GameSetup için
+using Yafes.GameData;
 
 namespace Yafes.Managers
 {
     public class GameCardManager
     {
-        // GameInstallationQueueManager referansı
         private GameInstallationQueueManager _queueManager;
 
-        /// <summary>
-        /// Queue manager'ı set etmek için (GamesPanelManager'dan çağrılacak)
-        /// </summary>
         public void SetQueueManager(GameInstallationQueueManager queueManager)
         {
             _queueManager = queueManager;
@@ -79,7 +75,7 @@ namespace Yafes.Managers
                             mainGrid.Children.Add(iconGrid);
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         var iconGrid = CreateFullFrameCategoryIcon(game.Category);
                         mainGrid.Children.Add(iconGrid);
@@ -171,9 +167,8 @@ namespace Yafes.Managers
 
                 return gameCard;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"CreateGameCard error: {ex.Message}");
                 return null;
             }
         }
@@ -245,9 +240,8 @@ namespace Yafes.Managers
 
                 return gameCard;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"CreateDefaultGameCard error: {ex.Message}");
                 return null;
             }
         }
@@ -277,9 +271,9 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"CreateDefaultGameCards error: {ex.Message}");
+                // Silent fail
             }
         }
 
@@ -337,9 +331,6 @@ namespace Yafes.Managers
             };
         }
 
-        /// <summary>
-        /// Card click event - Silent installation başlatır
-        /// </summary>
         private async void GameCard_Click(object sender, MouseButtonEventArgs e)
         {
             try
@@ -349,136 +340,184 @@ namespace Yafes.Managers
                     string gameName = "Unknown Game";
                     Yafes.Models.GameData gameData = null;
 
-                    // 1. Immediate visual feedback
                     CreateShakeEffect(card);
 
-                    // 2. GameData'yı al (önce Tag'den)
                     if (card.Tag is Yafes.Models.GameData data)
                     {
                         gameData = data;
                         gameName = gameData.Name;
-                        System.Diagnostics.Debug.WriteLine($"GameData found from Tag: {gameName}");
                     }
                     else
                     {
-                        // 3. Card'ın overlay text'inden oyun adını al
                         gameName = ExtractGameNameFromCard(card);
-                        System.Diagnostics.Debug.WriteLine($"Game name extracted from overlay: '{gameName}'");
 
-                        // GameData olmadığı için mock oluştur
                         if (!string.IsNullOrEmpty(gameName) && gameName != "Unknown Game")
                         {
                             gameData = CreateMockGameData(gameName);
-                            System.Diagnostics.Debug.WriteLine($"Mock GameData created: {gameName}");
                         }
                     }
 
-                    // 4. Eğer oyun adı alındıysa silent installation başlat
                     if (gameData != null && !string.IsNullOrEmpty(gameName) && gameName != "Unknown Game")
                     {
-                        System.Diagnostics.Debug.WriteLine($"Starting installation: {gameName}");
-
-                        // Card'ın görsel durumunu "installing" moduna al
-                        SetCardInstalling(card, true);
-
-                        try
+                        if (_queueManager != null)
                         {
-                            // Silent installation başlat
-                            bool installationSuccess = await Yafes.GameData.GameSetup.StartSilentInstallation(gameData, _queueManager);
-
-                            if (installationSuccess)
+                            try
                             {
-                                // Installation başarılı - card'ı "installed" moduna al
-                                SetCardInstalled(card, true);
-                                CreateSuccessGlowEffect(card);
-                                System.Diagnostics.Debug.WriteLine($"Installation successful: {gameName}");
+                                await CreateSuccessEffect(card);
+                                await _queueManager.AddGameToInstallationQueue(gameData);
                             }
-                            else
+                            catch (Exception)
                             {
-                                // Installation başarısız - card'ı normal moduna döndür
-                                SetCardInstalling(card, false);
-                                CreateErrorShakeEffect(card);
-                                System.Diagnostics.Debug.WriteLine($"Installation failed: {gameName}");
+                                await CreateErrorEffect(card);
                             }
                         }
-                        catch (Exception installEx)
+                        else
                         {
-                            System.Diagnostics.Debug.WriteLine($"Installation exception: {installEx.Message}");
-                            SetCardInstalling(card, false);
-                            CreateErrorShakeEffect(card);
+                            await CreateErrorEffect(card);
                         }
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"Platform game detected: '{gameName}'");
-                        ShowPlatformLaunchMessage(gameName);
+                        await CreatePlatformEffect(card);
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"GameCard_Click error: {ex.Message}");
-
-                // Error durumunda card'ı normale döndür
-                if (sender is Border errorCard)
-                {
-                    SetCardInstalling(errorCard, false);
-                    CreateErrorShakeEffect(errorCard);
-                }
+                // Silent fail
             }
         }
 
-        /// <summary>
-        /// Card'ın overlay text'inden oyun adını çıkarır
-        /// </summary>
+        private async Task CreateSuccessEffect(Border card)
+        {
+            try
+            {
+                var successAnimation = new DoubleAnimation
+                {
+                    From = 0.4,
+                    To = 1.0,
+                    Duration = TimeSpan.FromMilliseconds(200),
+                    AutoReverse = true,
+                    RepeatBehavior = new RepeatBehavior(2)
+                };
+
+                var originalEffect = card.Effect;
+                card.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Green,
+                    BlurRadius = 15,
+                    ShadowDepth = 0,
+                    Opacity = 0.8
+                };
+
+                card.Effect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.OpacityProperty, successAnimation);
+
+                await Task.Delay(800);
+                card.Effect = originalEffect;
+            }
+            catch (Exception)
+            {
+                // Silent fail
+            }
+        }
+
+        private async Task CreateErrorEffect(Border card)
+        {
+            try
+            {
+                var errorAnimation = new DoubleAnimation
+                {
+                    From = 0.4,
+                    To = 1.0,
+                    Duration = TimeSpan.FromMilliseconds(150),
+                    AutoReverse = true,
+                    RepeatBehavior = new RepeatBehavior(3)
+                };
+
+                var originalEffect = card.Effect;
+                card.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Red,
+                    BlurRadius = 15,
+                    ShadowDepth = 0,
+                    Opacity = 0.8
+                };
+
+                card.Effect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.OpacityProperty, errorAnimation);
+
+                await Task.Delay(900);
+                card.Effect = originalEffect;
+            }
+            catch (Exception)
+            {
+                // Silent fail
+            }
+        }
+
+        private async Task CreatePlatformEffect(Border card)
+        {
+            try
+            {
+                var platformAnimation = new DoubleAnimation
+                {
+                    From = 0.4,
+                    To = 1.0,
+                    Duration = TimeSpan.FromMilliseconds(200),
+                    AutoReverse = true,
+                    RepeatBehavior = new RepeatBehavior(2)
+                };
+
+                var originalEffect = card.Effect;
+                card.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Orange,
+                    BlurRadius = 15,
+                    ShadowDepth = 0,
+                    Opacity = 0.8
+                };
+
+                card.Effect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.OpacityProperty, platformAnimation);
+
+                await Task.Delay(800);
+                card.Effect = originalEffect;
+            }
+            catch (Exception)
+            {
+                // Silent fail
+            }
+        }
+
         private string ExtractGameNameFromCard(Border card)
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("Extracting game name from card overlay...");
-
-                // Card içindeki Grid'i al
                 if (card.Child is Grid mainGrid)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Found main grid with {mainGrid.Children.Count} children");
-
-                    // Grid içindeki tüm child'ları kontrol et
                     foreach (var child in mainGrid.Children)
                     {
-                        // TextOverlay Border'ını bul (Name == "TextOverlay")
                         if (child is Border overlay && overlay.Name == "TextOverlay")
                         {
-                            System.Diagnostics.Debug.WriteLine($"Found TextOverlay border - Opacity: {overlay.Opacity}");
-
-                            // Overlay içindeki StackPanel'i al
                             if (overlay.Child is StackPanel textStack)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Found text stack with {textStack.Children.Count} children");
-
-                                // İLK TEXTBLOCK = OYUN ADI
                                 if (textStack.Children.Count > 0 && textStack.Children[0] is TextBlock gameNameBlock)
                                 {
                                     var gameName = gameNameBlock.Text?.Trim();
                                     if (!string.IsNullOrEmpty(gameName))
                                     {
-                                        System.Diagnostics.Debug.WriteLine($"Game name extracted from overlay: '{gameName}'");
                                         return gameName;
                                     }
                                 }
 
-                                // Fallback: Tüm TextBlock'ları kontrol et
                                 foreach (var stackChild in textStack.Children)
                                 {
                                     if (stackChild is TextBlock textBlock)
                                     {
                                         var text = textBlock.Text?.Trim();
 
-                                        // Bold olan ve size info içermeyen = oyun adı
                                         if (!string.IsNullOrEmpty(text) &&
                                             textBlock.FontWeight == FontWeights.Bold &&
                                             !text.Contains("MB") && !text.Contains("GB"))
                                         {
-                                            System.Diagnostics.Debug.WriteLine($"Game name found (fallback): '{text}'");
                                             return text;
                                         }
                                     }
@@ -489,11 +528,8 @@ namespace Yafes.Managers
                 }
                 else
                 {
-                    // Fallback: Default games için StackPanel kontrolü
                     if (card.Child is StackPanel stackPanel)
                     {
-                        System.Diagnostics.Debug.WriteLine("Checking default game StackPanel...");
-
                         foreach (var child in stackPanel.Children)
                         {
                             if (child is TextBlock textBlock && textBlock.FontWeight == FontWeights.Bold)
@@ -502,7 +538,6 @@ namespace Yafes.Managers
 
                                 if (!string.IsNullOrEmpty(text) && !text.Contains("MB") && !text.Contains("GB"))
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"Default game name found: '{text}'");
                                     return text;
                                 }
                             }
@@ -510,19 +545,14 @@ namespace Yafes.Managers
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine("No game name found in card");
                 return "Unknown Game";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"ExtractGameNameFromCard error: {ex.Message}");
                 return "Unknown Game";
             }
         }
 
-        /// <summary>
-        /// Mock GameData oluşturur (Tag'de GameData olmayan card'lar için)
-        /// </summary>
         private Yafes.Models.GameData CreateMockGameData(string gameName)
         {
             try
@@ -540,222 +570,9 @@ namespace Yafes.Managers
                     Description = $"Mock game data for {gameName}"
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"CreateMockGameData error: {ex.Message}");
                 return null;
-            }
-        }
-
-        /// <summary>
-        /// Card'ın installing durumunu görsel olarak gösterir
-        /// </summary>
-        private void SetCardInstalling(Border card, bool isInstalling)
-        {
-            try
-            {
-                if (isInstalling)
-                {
-                    // Installing state: Orange glow + rotating border
-                    card.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 165, 0));
-                    card.Effect = new System.Windows.Media.Effects.DropShadowEffect
-                    {
-                        Color = Color.FromRgb(255, 165, 0),
-                        BlurRadius = 15,
-                        ShadowDepth = 0,
-                        Opacity = 0.8
-                    };
-
-                    // Rotating glow animation
-                    var pulseAnimation = new DoubleAnimation
-                    {
-                        From = 0.4,
-                        To = 1.0,
-                        Duration = TimeSpan.FromMilliseconds(1000),
-                        RepeatBehavior = RepeatBehavior.Forever,
-                        AutoReverse = true
-                    };
-
-                    card.Effect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.OpacityProperty, pulseAnimation);
-                }
-                else
-                {
-                    // Normal state: Reset to default
-                    card.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 165, 0));
-                    card.Effect = new System.Windows.Media.Effects.DropShadowEffect
-                    {
-                        Color = Color.FromRgb(255, 165, 0),
-                        BlurRadius = 6,
-                        ShadowDepth = 0,
-                        Opacity = 0.4
-                    };
-
-                    // Stop animations
-                    card.Effect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.OpacityProperty, null);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"SetCardInstalling error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Card'ı installed durumunda gösterir
-        /// </summary>
-        private void SetCardInstalled(Border card, bool isInstalled)
-        {
-            try
-            {
-                if (isInstalled)
-                {
-                    // Installed state: Green glow
-                    card.BorderBrush = new SolidColorBrush(Color.FromRgb(0, 255, 0));
-                    card.Effect = new System.Windows.Media.Effects.DropShadowEffect
-                    {
-                        Color = Color.FromRgb(0, 255, 0),
-                        BlurRadius = 10,
-                        ShadowDepth = 0,
-                        Opacity = 0.6
-                    };
-
-                    // Add "INSTALLED" overlay
-                    AddInstalledOverlay(card);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"SetCardInstalled error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// "INSTALLED" overlay ekler
-        /// </summary>
-        private void AddInstalledOverlay(Border card)
-        {
-            try
-            {
-                var mainGrid = card.Child as Grid;
-                if (mainGrid != null)
-                {
-                    var installedBadge = new Border
-                    {
-                        Background = new SolidColorBrush(Color.FromArgb(200, 0, 255, 0)),
-                        CornerRadius = new CornerRadius(3),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Padding = new Thickness(8, 2, 8, 2)
-                    };
-
-                    var installedText = new TextBlock
-                    {
-                        Text = "KURULU",
-                        Foreground = Brushes.White,
-                        FontWeight = FontWeights.Bold,
-                        FontSize = 10,
-                        HorizontalAlignment = HorizontalAlignment.Center
-                    };
-
-                    installedBadge.Child = installedText;
-                    Panel.SetZIndex(installedBadge, 200);
-
-                    mainGrid.Children.Add(installedBadge);
-
-                    // Fade in animation
-                    installedBadge.Opacity = 0;
-                    var fadeIn = new DoubleAnimation
-                    {
-                        From = 0,
-                        To = 1,
-                        Duration = TimeSpan.FromMilliseconds(500)
-                    };
-                    installedBadge.BeginAnimation(Border.OpacityProperty, fadeIn);
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"AddInstalledOverlay error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Success glow effect
-        /// </summary>
-        private void CreateSuccessGlowEffect(Border card)
-        {
-            try
-            {
-                var glowAnimation = new DoubleAnimation
-                {
-                    From = 0.6,
-                    To = 1.0,
-                    Duration = TimeSpan.FromMilliseconds(300),
-                    AutoReverse = true,
-                    RepeatBehavior = new RepeatBehavior(3)
-                };
-
-                card.Effect.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.OpacityProperty, glowAnimation);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"CreateSuccessGlowEffect error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Error shake effect
-        /// </summary>
-        private void CreateErrorShakeEffect(Border card)
-        {
-            try
-            {
-                // Red flash + shake
-                var originalBrush = card.BorderBrush;
-                card.BorderBrush = new SolidColorBrush(Colors.Red);
-
-                var shakeAnimation = new DoubleAnimation
-                {
-                    From = 0,
-                    To = 5,
-                    Duration = TimeSpan.FromMilliseconds(50),
-                    AutoReverse = true,
-                    RepeatBehavior = new RepeatBehavior(4)
-                };
-
-                var translateTransform = new TranslateTransform();
-                card.RenderTransform = translateTransform;
-
-                shakeAnimation.Completed += (s, e) =>
-                {
-                    card.BorderBrush = originalBrush; // Restore original color
-                    card.RenderTransform = null;
-                };
-
-                translateTransform.BeginAnimation(TranslateTransform.XProperty, shakeAnimation);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"CreateErrorShakeEffect error: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Platform games için launch message
-        /// </summary>
-        private void ShowPlatformLaunchMessage(string gameName)
-        {
-            try
-            {
-                MessageBox.Show(
-                    $"🎮 {gameName} platformunu açmak istiyor musunuz?",
-                    "Platform Launcher",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Question);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"ShowPlatformLaunchMessage error: {ex.Message}");
             }
         }
 
@@ -813,9 +630,9 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"GameCard_MouseEnter error: {ex.Message}");
+                // Silent fail
             }
         }
 
@@ -872,18 +689,16 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"GameCard_MouseLeave error: {ex.Message}");
+                // Silent fail
             }
         }
 
-        // XAML'daki spesifik logo için metotlar - Main.xaml analizi
         public void HideMainBackgroundLogo(Window mainWindow)
         {
             try
             {
-                // Main.xaml'daki Canvas.Left="392" Canvas.Top="230" konumundaki logo
                 var mainCanvas = mainWindow.FindName("MainCanvas") as Canvas;
                 if (mainCanvas != null)
                 {
@@ -892,11 +707,9 @@ namespace Yafes.Managers
                         if (child is Image logoImage &&
                             logoImage.Source?.ToString().Contains("logo.png") == true)
                         {
-                            // Canvas pozisyonunu kontrol et
                             double left = Canvas.GetLeft(logoImage);
                             double top = Canvas.GetTop(logoImage);
 
-                            // Spesifik logo pozisyonu: Canvas.Left="392" Canvas.Top="230"
                             if (Math.Abs(left - 392) < 5 && Math.Abs(top - 230) < 5)
                             {
                                 logoImage.Visibility = Visibility.Collapsed;
@@ -906,9 +719,9 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"HideMainBackgroundLogo error: {ex.Message}");
+                // Silent fail
             }
         }
 
@@ -916,7 +729,6 @@ namespace Yafes.Managers
         {
             try
             {
-                // Main.xaml'daki Canvas.Left="392" Canvas.Top="230" konumundaki logo
                 var mainCanvas = mainWindow.FindName("MainCanvas") as Canvas;
                 if (mainCanvas != null)
                 {
@@ -925,11 +737,9 @@ namespace Yafes.Managers
                         if (child is Image logoImage &&
                             logoImage.Source?.ToString().Contains("logo.png") == true)
                         {
-                            // Canvas pozisyonunu kontrol et
                             double left = Canvas.GetLeft(logoImage);
                             double top = Canvas.GetTop(logoImage);
 
-                            // Spesifik logo pozisyonu: Canvas.Left="392" Canvas.Top="230"
                             if (Math.Abs(left - 392) < 5 && Math.Abs(top - 230) < 5)
                             {
                                 logoImage.Visibility = Visibility.Visible;
@@ -939,9 +749,9 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"ShowMainBackgroundLogo error: {ex.Message}");
+                // Silent fail
             }
         }
 
@@ -962,9 +772,9 @@ namespace Yafes.Managers
                 card.RenderTransform = translateTransform;
                 translateTransform.BeginAnimation(TranslateTransform.XProperty, shakeAnimation);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"CreateShakeEffect error: {ex.Message}");
+                // Silent fail
             }
         }
     }

@@ -29,6 +29,7 @@
     <Compile Include="GameData\GameSearchManager.cs" />
     <Compile Include="GameData\GameSetup.cs" />
     <Compile Include="GameData\GamesPanelManeger.cs" />
+    <Compile Include="GameData\MonitorInstallationProcess.cs" />
     <Compile Include="GameData\RepackerBadgeManager.cs" />
     <Compile Include="GameData\UIHelperManager.cs" />
     <Compile Include="Managers\ImageManager.cs" />

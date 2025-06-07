@@ -29,7 +29,7 @@ namespace Yafes.Managers
         private Border _installationQueue;
         private TranslateTransform _installationQueueTransform;
 
-        // YENİ: Oyun yükleme kuyruğu
+        // Oyun yükleme kuyruğu
         private Border _gameInstallationQueue;
         private TranslateTransform _gameInstallationQueueTransform;
 
@@ -77,9 +77,9 @@ namespace Yafes.Managers
                         });
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    System.Diagnostics.Debug.WriteLine($"LogMessage error: {ex.Message}");
+                    // Silent fail
                 }
             };
 
@@ -96,23 +96,260 @@ namespace Yafes.Managers
                 TestGameInstallationQueue();
                 _diskStatusChecked = true;
             }
+
+            // ✅ YENİ: Arama kutusunu başlat
+            InitializeSearchBox();
         }
 
         public bool IsGamesVisible => _isGamesVisible;
 
-        // YENİ DEBUG METOD - DÜZELTİLDİ: Test metodunu kaldır
+        /// <summary>
+        /// Arama kutusunu başlatır ve event handler'ları bağlar
+        /// </summary>
+        private void InitializeSearchBox()
+        {
+            try
+            {
+                // Biraz bekle ki UI elementleri hazır olsun
+                Task.Run(async () =>
+                {
+                    await Task.Delay(500);
+
+                    await _parentWindow.Dispatcher.InvokeAsync(() =>
+                    {
+                        SetupSearchBoxEventHandlers();
+                    });
+                });
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ InitializeSearchBox hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Arama kutusu event handler'larını kurar
+        /// </summary>
+        private void SetupSearchBoxEventHandlers()
+        {
+            try
+            {
+                var gamesPanel = UIHelperManager.FindElementByTag<Border>(_parentWindow, "GamesPanel");
+                if (gamesPanel == null)
+                {
+                    LogMessage?.Invoke("⚠️ Games panel bulunamadı, arama kutusu başlatılamadı");
+                    return;
+                }
+
+                var searchBox = UIHelperManager.FindElementByName<TextBox>(gamesPanel, "GameSearchBox");
+                var searchPlaceholder = UIHelperManager.FindElementByName<TextBlock>(gamesPanel, "SearchPlaceholder");
+                var clearButton = UIHelperManager.FindElementByName<Button>(gamesPanel, "ClearSearchButton");
+
+                if (searchBox == null)
+                {
+                    LogMessage?.Invoke("⚠️ Arama kutusu bulunamadı");
+                    return;
+                }
+
+                // Event handler'ları temizle (önceki bağlantıları kaldır)
+                searchBox.TextChanged -= SearchBox_TextChanged;
+                searchBox.GotFocus -= SearchBox_GotFocus;
+                searchBox.LostFocus -= SearchBox_LostFocus;
+
+                if (clearButton != null)
+                {
+                    clearButton.Click -= ClearButton_Click;
+                }
+
+                // Yeni event handler'ları bağla
+                searchBox.TextChanged += SearchBox_TextChanged;
+                searchBox.GotFocus += SearchBox_GotFocus;
+                searchBox.LostFocus += SearchBox_LostFocus;
+
+                if (clearButton != null)
+                {
+                    clearButton.Click += ClearButton_Click;
+                }
+
+                LogMessage?.Invoke("✅ Arama kutusu event handler'ları bağlandı");
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ SetupSearchBoxEventHandlers hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Arama kutusu TextChanged event handler
+        /// </summary>
+        private async void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                var textBox = sender as TextBox;
+                var searchText = textBox?.Text ?? "";
+
+                // Placeholder ve clear button kontrolü
+                var gamesPanel = UIHelperManager.FindElementByTag<Border>(_parentWindow, "GamesPanel");
+                if (gamesPanel != null)
+                {
+                    var searchPlaceholder = UIHelperManager.FindElementByName<TextBlock>(gamesPanel, "SearchPlaceholder");
+                    var clearButton = UIHelperManager.FindElementByName<Button>(gamesPanel, "ClearSearchButton");
+
+                    if (searchPlaceholder != null)
+                    {
+                        searchPlaceholder.Visibility = string.IsNullOrEmpty(searchText)
+                            ? Visibility.Visible
+                            : Visibility.Collapsed;
+                    }
+
+                    if (clearButton != null)
+                    {
+                        clearButton.Visibility = string.IsNullOrEmpty(searchText)
+                            ? Visibility.Collapsed
+                            : Visibility.Visible;
+                    }
+                }
+
+                // Arama gerçekleştir (sadece games paneli açıksa)
+                if (_isGamesVisible)
+                {
+                    await PerformSearchAsync(searchText);
+
+                    if (string.IsNullOrWhiteSpace(searchText))
+                    {
+                        LogMessage?.Invoke("🔍 Arama temizlendi, tüm oyunlar gösteriliyor");
+                    }
+                    else
+                    {
+                        LogMessage?.Invoke($"🔍 Arama: '{searchText}'");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ Arama hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Arama kutusu GotFocus event handler
+        /// </summary>
+        private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var gamesPanel = UIHelperManager.FindElementByTag<Border>(_parentWindow, "GamesPanel");
+                if (gamesPanel != null)
+                {
+                    var searchPlaceholder = UIHelperManager.FindElementByName<TextBlock>(gamesPanel, "SearchPlaceholder");
+                    if (searchPlaceholder != null)
+                    {
+                        searchPlaceholder.Visibility = Visibility.Collapsed;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Silent fail
+            }
+        }
+
+        /// <summary>
+        /// Arama kutusu LostFocus event handler
+        /// </summary>
+        private void SearchBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var textBox = sender as TextBox;
+                if (string.IsNullOrEmpty(textBox?.Text))
+                {
+                    var gamesPanel = UIHelperManager.FindElementByTag<Border>(_parentWindow, "GamesPanel");
+                    if (gamesPanel != null)
+                    {
+                        var searchPlaceholder = UIHelperManager.FindElementByName<TextBlock>(gamesPanel, "SearchPlaceholder");
+                        if (searchPlaceholder != null)
+                        {
+                            searchPlaceholder.Visibility = Visibility.Visible;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Silent fail
+            }
+        }
+
+        /// <summary>
+        /// Clear button Click event handler
+        /// </summary>
+        private async void ClearButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var gamesPanel = UIHelperManager.FindElementByTag<Border>(_parentWindow, "GamesPanel");
+                if (gamesPanel != null)
+                {
+                    var searchBox = UIHelperManager.FindElementByName<TextBox>(gamesPanel, "GameSearchBox");
+                    var searchPlaceholder = UIHelperManager.FindElementByName<TextBlock>(gamesPanel, "SearchPlaceholder");
+                    var clearButton = UIHelperManager.FindElementByName<Button>(gamesPanel, "ClearSearchButton");
+
+                    if (searchBox != null)
+                    {
+                        searchBox.Text = "";
+                        searchBox.Focus();
+                    }
+
+                    if (searchPlaceholder != null)
+                    {
+                        searchPlaceholder.Visibility = Visibility.Visible;
+                    }
+
+                    if (clearButton != null)
+                    {
+                        clearButton.Visibility = Visibility.Collapsed;
+                    }
+                }
+
+                // Tüm oyunları göster
+                if (_isGamesVisible)
+                {
+                    await PerformSearchAsync("");
+                    LogMessage?.Invoke("🔍 Arama temizlendi");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ Arama temizleme hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Arama kutusunu yeniden başlatır (games paneli açıldığında çağrılır)
+        /// </summary>
+        public void RefreshSearchBox()
+        {
+            try
+            {
+                SetupSearchBoxEventHandlers();
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"❌ RefreshSearchBox hatası: {ex.Message}");
+            }
+        }
+
         private async void TestGameInstallationQueue()
         {
             try
             {
                 await Task.Delay(2000);
 
-                if (_gameInstallationQueue != null)
+                if (_gameInstallationQueue != null && _gameInstallationQueueTransform != null)
                 {
-                    if (_gameInstallationQueueTransform != null)
-                    {
-                        // Silent test - no logs
-                    }
+                    // Silent test
                 }
 
                 var mainCanvas = UIHelperManager.FindElementByName<Canvas>(_parentWindow, "MainCanvas");
@@ -129,7 +366,7 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
@@ -154,13 +391,12 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
         }
 
-        // MEVCUT: Kurulum kuyruğu elementlerini initialize eder
         private void InitializeInstallationQueueElements()
         {
             try
@@ -177,44 +413,43 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
         }
 
-        // YENİ METOD: Oyun yükleme kuyruğu elementlerini initialize eder - DÜZELTİLDİ
         private void InitializeGameInstallationQueueElements()
         {
             try
             {
-                // GameInstallationQueueManager'ı oluştur
                 var dummyStackPanel = new StackPanel();
                 var dummyTextBlock = new TextBlock();
                 _gameInstallationQueueManager = new GameInstallationQueueManager(dummyStackPanel, dummyTextBlock, _logTextBox, _parentWindow);
 
-                // Panel oluştur
                 _gameInstallationQueue = _gameInstallationQueueManager.CreateGameInstallationQueuePanel();
 
                 if (_gameInstallationQueue != null)
                 {
                     _gameInstallationQueueTransform = _gameInstallationQueue.RenderTransform as TranslateTransform;
-
                     if (_gameInstallationQueueTransform == null)
                     {
                         _gameInstallationQueueTransform = new TranslateTransform();
                         _gameInstallationQueueTransform.X = 220;
                         _gameInstallationQueue.RenderTransform = _gameInstallationQueueTransform;
                     }
+
+                    _gameInstallationQueue.Visibility = Visibility.Collapsed;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Silent fail
+                _gameInstallationQueueManager = null;
+                _gameInstallationQueue = null;
+                _gameInstallationQueueTransform = null;
             }
         }
 
-        // MEVCUT: Kurulum kuyruğu bulma metodları
         private Border FindInstallationQueueBorder()
         {
             try
@@ -234,7 +469,7 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
@@ -261,7 +496,7 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
@@ -269,17 +504,20 @@ namespace Yafes.Managers
             return null;
         }
 
-        // GÜNCELLENMİŞ: InitializeManagers - Oyun kuyruğu parametresi eklendi
         private void InitializeManagers()
         {
             try
             {
                 _gameCardManager = new GameCardManager();
 
+                if (_gameInstallationQueueManager != null && _gameCardManager != null)
+                {
+                    _gameCardManager.SetQueueManager(_gameInstallationQueueManager);
+                }
+
                 if (_leftSidebar != null && _leftSidebarTransform != null &&
                     _progressBarContainer != null && _progressBarTransform != null &&
-                    _installationQueue != null && _installationQueueTransform != null &&
-                    _gameInstallationQueue != null && _gameInstallationQueueTransform != null)
+                    _installationQueue != null && _installationQueueTransform != null)
                 {
                     _animationManager = new AnimationManager(
                         _parentWindow,
@@ -298,9 +536,20 @@ namespace Yafes.Managers
 
                 _gameSearchManager = new GameSearchManager(_allGames, CreateGameCardWrapper);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Silent fail
+                try
+                {
+                    if (_gameCardManager == null)
+                        _gameCardManager = new GameCardManager();
+
+                    if (_gameSearchManager == null)
+                        _gameSearchManager = new GameSearchManager(_allGames, CreateGameCardWrapper);
+                }
+                catch (Exception)
+                {
+                    // Silent fail
+                }
             }
         }
 
@@ -317,7 +566,7 @@ namespace Yafes.Managers
                 _mainCanvas = UIHelperManager.FindElementByName<Canvas>(_parentWindow, "MainCanvas");
                 CalculateProgressBarHeight();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
@@ -349,7 +598,7 @@ namespace Yafes.Managers
                     _progressBarHeight = 64;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _progressBarHeight = 64;
             }
@@ -364,7 +613,7 @@ namespace Yafes.Managers
                 _progressBarSlideOut = _parentWindow.FindResource("ProgressBarSlideOut") as Storyboard;
                 _progressBarSlideIn = _parentWindow.FindResource("ProgressBarSlideIn") as Storyboard;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
@@ -386,7 +635,7 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
@@ -408,7 +657,7 @@ namespace Yafes.Managers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
@@ -422,7 +671,7 @@ namespace Yafes.Managers
                 return _progressBarContainer.Visibility == Visibility.Collapsed ||
                        (_progressBarTransform != null && _progressBarTransform.X > 600);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
@@ -453,13 +702,12 @@ namespace Yafes.Managers
                     return true;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
         }
 
-        // GÜNCELLENMİŞ: ToggleGamesPanel - Oyun kuyruğu animasyonu eklendi
         public async Task<bool> ToggleGamesPanel()
         {
             try
@@ -473,7 +721,23 @@ namespace Yafes.Managers
                 {
                     await _animationManager.SlideSidebarOut();
                     await _animationManager.SlideInstallationQueueDown();
-                    await _animationManager.SlideGameInstallationQueueIn();
+
+                    if (_gameInstallationQueue != null)
+                    {
+                        _gameInstallationQueue.Visibility = Visibility.Visible;
+                    }
+
+                    if (_gameInstallationQueueTransform != null)
+                    {
+                        try
+                        {
+                            await _animationManager.SlideGameInstallationQueueIn();
+                        }
+                        catch (Exception)
+                        {
+                            // Silent fail
+                        }
+                    }
 
                     bool success = await ShowGamesPanel();
                     if (success)
@@ -491,20 +755,36 @@ namespace Yafes.Managers
                     if (success)
                     {
                         _isGamesVisible = false;
-                        await _animationManager.SlideGameInstallationQueueOut();
+
+                        if (_gameInstallationQueueTransform != null)
+                        {
+                            try
+                            {
+                                await _animationManager.SlideGameInstallationQueueOut();
+                            }
+                            catch (Exception)
+                            {
+                                // Silent fail
+                            }
+                        }
+
+                        if (_gameInstallationQueue != null)
+                        {
+                            _gameInstallationQueue.Visibility = Visibility.Collapsed;
+                        }
+
                         await _animationManager.SlideInstallationQueueUp();
                         await _animationManager.SlideSidebarIn();
                     }
                     return success;
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
         }
 
-        // MEVCUT METODLAR (değişmez)
         private async Task<bool> ShowGamesPanel()
         {
             try
@@ -561,9 +841,14 @@ namespace Yafes.Managers
                 await Task.Delay(100);
                 await LoadGamesIntoPanel(gamesPanel);
 
+                // ✅ YENİ: Arama kutusunu yeniden başlat
+                await Task.Delay(100); // Panel animasyonunun tamamlanması için bekle
+                RefreshSearchBox();
+                LogMessage?.Invoke("🔍 Games panel açıldı, arama kutusu aktif edildi");
+
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
@@ -635,7 +920,7 @@ namespace Yafes.Managers
 
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
@@ -696,7 +981,7 @@ namespace Yafes.Managers
                             cardCount++;
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         // Silent fail for individual cards
                     }
@@ -704,7 +989,7 @@ namespace Yafes.Managers
 
                 gamesGrid.UpdateLayout();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 try
                 {
@@ -714,7 +999,7 @@ namespace Yafes.Managers
                         _gameCardManager?.CreateDefaultGameCards(gamesGrid);
                     }
                 }
-                catch (Exception fallbackEx)
+                catch (Exception)
                 {
                     // Silent fail
                 }
@@ -742,15 +1027,25 @@ namespace Yafes.Managers
                 if (_gameSearchManager != null)
                 {
                     await _gameSearchManager.PerformSearchAsync(searchText, gamesGrid);
+
+                    // Sonuç sayısını logla
+                    int resultCount = gamesGrid.Children.Count;
+                    if (string.IsNullOrWhiteSpace(searchText))
+                    {
+                        LogMessage?.Invoke($"📋 Tüm oyunlar gösteriliyor ({resultCount} oyun)");
+                    }
+                    else
+                    {
+                        LogMessage?.Invoke($"🎯 Arama sonucu: {resultCount} oyun bulundu");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                // Silent fail
+                LogMessage?.Invoke($"❌ PerformSearchAsync hatası: {ex.Message}");
             }
         }
 
-        // GÜNCELLENMİŞ: ForceReset - Oyun kuyruğu reset'i eklendi
         public void ForceReset()
         {
             try
@@ -820,7 +1115,7 @@ namespace Yafes.Managers
 
                 _isGamesVisible = false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Silent fail
             }
